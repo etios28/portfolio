@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Lab — Etienne Fiore</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#06040f; color:#f0eeff; font-family:'DM Mono',monospace; min-height:100vh; display:flex; flex-direction:column; }
+
+#login-screen {
+  position:fixed; inset:0; background:#06040f;
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000; flex-direction:column;
+}
+.login-box {
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:20px; padding:2.5rem 2rem;
+  width:min(380px,90vw); text-align:center;
+  backdrop-filter:blur(20px);
+}
+.login-logo {
+  font-family:'Syne',sans-serif; font-size:1.1rem; font-weight:800;
+  background:linear-gradient(135deg,#a78bfa,#06b6d4);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-bottom:0.4rem;
+}
+.login-sub { font-size:0.7rem; color:#8b7fc7; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:2rem; }
+.pin-display { display:flex; justify-content:center; gap:0.75rem; margin-bottom:2rem; }
+.pin-dot { width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,0.15); transition:all 0.2s; }
+.pin-dot.filled { background:linear-gradient(135deg,#a78bfa,#06b6d4); border-color:transparent; box-shadow:0 0 12px rgba(167,139,250,0.5); }
+.pin-dot.error { background:#f43f5e; border-color:transparent; animation:shake 0.4s ease; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+.numpad { display:grid; grid-template-columns:repeat(3,1fr); gap:0.6rem; }
+.num-btn {
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);
+  border-radius:12px; color:#f0eeff; font-family:'Syne',sans-serif;
+  font-size:1.2rem; font-weight:700; padding:1rem; cursor:pointer; transition:all 0.15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.num-btn:hover { background:rgba(167,139,250,0.1); border-color:rgba(167,139,250,0.3); }
+.num-btn:active { transform:scale(0.94); }
+.num-btn.del { font-size:0.9rem; color:#8b7fc7; }
+.num-btn.empty { visibility:hidden; }
+
+#app { display:none; flex-direction:column; flex:1; height:100vh; }
+.topbar {
+  display:flex; align-items:center; gap:1rem; padding:0.75rem 1.25rem;
+  background:rgba(6,4,15,0.95); border-bottom:1px solid rgba(255,255,255,0.06);
+  backdrop-filter:blur(20px); position:sticky; top:0; z-index:50; flex-shrink:0;
+}
+.topbar-logo {
+  font-family:'Syne',sans-serif; font-size:0.9rem; font-weight:800;
+  background:linear-gradient(135deg,#a78bfa,#06b6d4);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  margin-right:auto;
+}
+.tab-btn {
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07);
+  border-radius:100px; color:#8b7fc7; font-family:'DM Mono',monospace;
+  font-size:0.72rem; padding:0.4rem 1rem; cursor:pointer; transition:all 0.2s; white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;
+}
+.tab-btn.active { background:rgba(167,139,250,0.15); border-color:rgba(167,139,250,0.4); color:#a78bfa; }
+.lock-btn {
+  background:none; border:1px solid rgba(255,255,255,0.07); border-radius:8px;
+  color:#8b7fc7; font-size:0.75rem; padding:0.35rem 0.6rem; cursor:pointer; transition:all 0.2s;
+}
+.lock-btn:hover { border-color:rgba(244,63,94,0.4); color:#f43f5e; }
+.frame-container { flex:1; position:relative; overflow:hidden; }
+.app-frame { width:100%; height:100%; border:none; display:none; position:absolute; inset:0; }
+.app-frame.active { display:block; }
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">ETIENNE FIORE</div>
+    <div class="login-sub">Acc&#232;s priv&#233; &mdash; Lab</div>
+    <div class="pin-display">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+      <div class="pin-dot" id="d4"></div>
+    </div>
+    <div class="numpad">
+      <button class="num-btn" onclick="addPin('1')">1</button>
+      <button class="num-btn" onclick="addPin('2')">2</button>
+      <button class="num-btn" onclick="addPin('3')">3</button>
+      <button class="num-btn" onclick="addPin('4')">4</button>
+      <button class="num-btn" onclick="addPin('5')">5</button>
+      <button class="num-btn" onclick="addPin('6')">6</button>
+      <button class="num-btn" onclick="addPin('7')">7</button>
+      <button class="num-btn" onclick="addPin('8')">8</button>
+      <button class="num-btn" onclick="addPin('9')">9</button>
+      <button class="num-btn empty"></button>
+      <button class="num-btn" onclick="addPin('0')">0</button>
+      <button class="num-btn del" onclick="delPin()">&#9003;</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo">LAB_</div>
+    <button class="tab-btn active" id="tab-trading" onclick="switchTab('trading')">Trading</button>
+    <button class="tab-btn" id="tab-programme" onclick="switchTab('programme')">Programme</button>
+    <button class="lock-btn" onclick="lock()">&#9211;</button>
+  </div>
+  <div class="frame-container">
+    <iframe class="app-frame active" id="frame-trading" srcdoc="<!DOCTYPE html>
+<html lang=&quot;fr&quot;>
+<head>
+<meta charset=&quot;UTF-8&quot;>
+<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no&quot;>
+<title>GOLD TRADER</title>
+<link href=&quot;https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&amp;family=Syne:wght@400;600;700;800&amp;display=swap&quot; rel=&quot;stylesheet&quot;>
+<style>
+:root{
+  --gold:#D4A843;--gold-d:#8B6914;--gold-l:#F0C96A;
+  --bg:#0A0A0B;--s:#1E1E24;--s2:#26262E;--bg3:#161619;
+  --b:#2A2A34;--text:#E8E8F0;--mut:#6E6E85;
+  --gr:#4ADE80;--rd:#F87171;--or:#FB923C;--bl:#60A5FA;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+
+/* ── HEADER ── */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  height:52px;
+  background:rgba(10,10,11,.97);
+  border-bottom:1px solid var(--b);
+  display:flex;align-items:center;padding:0 1rem;gap:.5rem;
+}
+.logo{font-family:'Space Mono',monospace;font-size:.85rem;font-weight:700;letter-spacing:.12em;color:var(--gold);flex-shrink:0}
+.logo span{color:var(--mut)}
+.hclock{font-family:'Space Mono',monospace;font-size:.65rem;color:var(--gold);margin-left:auto;flex-shrink:0;display:flex;align-items:center;gap:.3rem}
+.hdot{width:5px;height:5px;border-radius:50%;background:var(--gr);animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── BOTTOM NAV ── */
+.bnav{
+  position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:rgba(10,10,11,.97);
+  border-top:1px solid var(--b);
+  display:flex;height:58px;
+}
+.bnav button{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  background:none;border:none;color:var(--mut);cursor:pointer;
+  font-family:'Syne',sans-serif;font-size:.58rem;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;
+  transition:color .2s;padding:0;
+}
+.bnav button .ico{font-size:1.1rem;line-height:1}
+.bnav button.active{color:var(--gold)}
+.bnav button.active .ico{filter:drop-shadow(0 0 4px rgba(212,168,67,.5))}
+
+/* ── PAGES ── */
+.page{display:none;padding-top:62px;padding-bottom:68px;min-height:100vh}
+.page.active{display:block;animation:up .25s ease}
+@keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.inner{padding:.85rem;max-width:600px;margin:0 auto}
+
+/* ── SESSION STATUS CARD ── */
+.status-card{
+  background:linear-gradient(135deg,var(--s),var(--bg3));
+  border:1px solid var(--b);border-radius:14px;
+  padding:1rem 1.15rem;margin-bottom:.85rem;
+  position:relative;overflow:hidden;
+}
+.status-card::after{
+  content:'XAU';position:absolute;right:-.2rem;top:50%;
+  transform:translateY(-50%);
+  font-family:'Space Mono',monospace;font-size:4.5rem;font-weight:700;
+  color:var(--gold);opacity:.05;pointer-events:none;line-height:1;
+}
+.status-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
+.status-card h1{font-size:1.15rem;font-weight:800;color:var(--gold)}
+.status-card .sub{font-size:.7rem;color:var(--mut);margin-top:.12rem}
+.sbadge{
+  font-family:'Space Mono',monospace;font-size:.58rem;font-weight:700;
+  letter-spacing:.08em;padding:.26rem .6rem;border-radius:99px;
+  text-transform:uppercase;white-space:nowrap;flex-shrink:0;
+}
+.s-on{background:rgba(74,222,128,.15);color:var(--gr);border:1px solid rgba(74,222,128,.3)}
+.s-warn{background:rgba(251,146,60,.15);color:var(--or);border:1px solid rgba(251,146,60,.3)}
+.s-off{background:rgba(248,113,113,.12);color:var(--rd);border:1px solid rgba(248,113,113,.25)}
+.s-mine{background:rgba(212,168,67,.15);color:var(--gold);border:1px solid rgba(212,168,67,.3)}
+
+/* ── SECTION LABEL ── */
+.slbl{
+  font-family:'Space Mono',monospace;font-size:.56rem;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--mut);
+  margin:.85rem 0 .55rem;display:flex;align-items:center;gap:.4rem;
+}
+.slbl::after{content:'';flex:1;height:1px;background:var(--b)}
+
+/* ── SESSION CARDS ── */
+.scard{
+  background:var(--s);border:1px solid var(--b);border-radius:12px;
+  padding:.8rem .95rem;margin-bottom:.5rem;
+  display:flex;gap:.75rem;align-items:flex-start;position:relative;
+}
+.scard.hot{border-left:3px solid var(--gold)}
+.scard.med{border-left:3px solid var(--or)}
+.scard.dim{border-left:3px solid var(--mut)}
+.scard.mine{border-left:3px solid var(--bl);background:rgba(96,165,250,.04)}
+.scard.mine-m{border-left:3px solid var(--gold-l);background:rgba(212,168,67,.04);border-color:rgba(212,168,67,.2)}
+.stime{font-family:'Space Mono',monospace;font-size:.78rem;font-weight:700;color:var(--gold);flex-shrink:0;width:74px}
+.scard.mine .stime{color:var(--bl)}
+.scard.mine-m .stime{color:var(--gold-l)}
+.scard.dim .stime{color:var(--mut)}
+.sinfo h3{font-size:.78rem;font-weight:700;margin-bottom:.1rem}
+.sinfo p{font-size:.67rem;color:var(--mut);line-height:1.45}
+.mbadge{
+  position:absolute;top:.4rem;right:.5rem;
+  font-family:'Space Mono',monospace;font-size:.5rem;font-weight:700;
+  letter-spacing:.06em;padding:.1rem .34rem;border-radius:4px;text-transform:uppercase;
+}
+.mb-s{background:rgba(96,165,250,.18);color:var(--bl)}
+.mb-p{background:rgba(212,168,67,.22);color:var(--gold)}
+
+/* ── NEWS CARDS ── */
+.ncard{
+  background:var(--s);border:1px solid var(--b);border-radius:12px;
+  padding:.8rem .95rem;margin-bottom:.5rem;
+}
+.nhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:.4rem}
+.ncard h4{font-size:.8rem;font-weight:700}
+.nipact{font-family:'Space Mono',monospace;font-size:.54rem;font-weight:700;padding:.14rem .36rem;border-radius:4px}
+.ni-max{background:rgba(248,113,113,.2);color:var(--rd)}
+.ni-hi{background:rgba(251,146,60,.2);color:var(--or)}
+.ni-gld{background:rgba(212,168,67,.2);color:var(--gold)}
+.nwhen{font-family:'Space Mono',monospace;font-size:.63rem;color:var(--mut);margin-bottom:.35rem}
+.nrule{font-size:.68rem;color:var(--mut);line-height:1.55}
+.up{color:var(--gr);font-weight:700}
+.dn{color:var(--rd);font-weight:700}
+
+/* ── LINK BUTTONS ── */
+.lbtn{
+  display:flex;align-items:center;gap:.7rem;
+  background:var(--s);border:1px solid var(--b);border-radius:12px;
+  padding:.8rem .95rem;margin-bottom:.5rem;
+  text-decoration:none;color:var(--text);
+  transition:all .18s;cursor:pointer;width:100%;
+}
+.lbtn:active{background:var(--s2);border-color:var(--gold-d);transform:scale(.99)}
+.lbtn-ico{
+  width:36px;height:36px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1rem;flex-shrink:0;
+}
+.lbtn-txt h4{font-size:.78rem;font-weight:700;margin-bottom:.08rem}
+.lbtn-txt p{font-size:.65rem;color:var(--mut)}
+.lbtn-arr{margin-left:auto;color:var(--mut);font-size:.8rem;flex-shrink:0}
+
+/* ── CHECKLIST ── */
+.ckitem{
+  display:flex;align-items:flex-start;gap:.62rem;
+  background:var(--bg3);border:1px solid var(--b);border-radius:9px;
+  padding:.5rem .72rem;margin-bottom:.42rem;cursor:pointer;
+  transition:border-color .18s;
+}
+.ckitem:active{border-color:var(--gold-d)}
+.ckitem input{accent-color:var(--gold);width:14px;height:14px;flex-shrink:0;margin-top:.1rem;cursor:pointer}
+.ckitem label{font-size:.7rem;color:var(--mut);line-height:1.45;cursor:pointer}
+.ckitem.done label{text-decoration:line-through;opacity:.38}
+.pgbar{height:3px;background:var(--b);border-radius:99px;overflow:hidden;margin-top:.5rem}
+.pgfill{height:100%;background:linear-gradient(90deg,var(--gold-d),var(--gold));border-radius:99px;transition:width .35s}
+.pglbl{font-family:'Space Mono',monospace;font-size:.56rem;color:var(--mut);margin-top:.28rem;text-align:right}
+
+/* ── MODULE ACCORDION ── */
+.mcard{background:var(--s);border:1px solid var(--b);border-radius:13px;margin-bottom:.65rem;overflow:hidden;transition:border-color .18s}
+.mcard:active .mhead{background:rgba(255,255,255,.02)}
+.mhead{display:flex;align-items:center;gap:.75rem;padding:.8rem .95rem;cursor:pointer;user-select:none}
+.mnum{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:.56rem;font-weight:700;flex-shrink:0}
+.m1{background:rgba(96,165,250,.15);color:var(--bl)}
+.m2{background:rgba(212,168,67,.15);color:var(--gold)}
+.m3{background:rgba(251,146,60,.15);color:var(--or)}
+.m4{background:rgba(74,222,128,.15);color:var(--gr)}
+.mmeta{flex:1}
+.mmeta h3{font-size:.84rem;font-weight:700}
+.mmeta p{font-size:.65rem;color:var(--mut);margin-top:.08rem}
+.marr{color:var(--mut);font-size:.68rem;flex-shrink:0;transition:transform .2s}
+.marr.open{transform:rotate(180deg)}
+.mbody{display:none;border-top:1px solid var(--b);padding:.9rem}
+.mbody.open{display:block}
+.mlist{list-style:none;display:flex;flex-direction:column;gap:.28rem;margin-bottom:.75rem}
+.mlist li{font-size:.7rem;color:var(--mut);padding-left:.85rem;position:relative;line-height:1.5}
+.mlist li::before{content:'→';position:absolute;left:0;color:var(--gold);font-size:.6rem}
+.vrec{background:var(--bg3);border:1px solid var(--b);border-radius:9px;padding:.55rem .8rem;margin-top:.32rem;display:flex;align-items:center;gap:.6rem}
+.ytbtn{width:22px;height:22px;background:#FF0000;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:.56rem;flex-shrink:0;color:#fff}
+.vrec h5{font-size:.7rem;font-weight:700}
+.vrec p{font-size:.6rem;color:var(--mut);margin-top:.04rem;font-family:'Space Mono',monospace}
+.exbox{background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.2);border-radius:9px;padding:.6rem .8rem;margin-top:.6rem;font-size:.69rem;color:var(--mut);line-height:1.5}
+.exbox strong{color:var(--gold)}
+
+/* ── DOC ── */
+.dbox{background:var(--s);border:1px solid var(--b);border-radius:13px;padding:.95rem;margin-bottom:.65rem}
+.dbox h3{font-size:.82rem;font-weight:700;color:var(--gold);margin-bottom:.55rem}
+.dbox li{font-size:.69rem;color:var(--mut);line-height:1.6;list-style:none}
+.dbox li::before{content:'▸ ';color:var(--gold)}
+.dbox ul{display:flex;flex-direction:column;gap:.24rem}
+.trow{display:grid;grid-template-columns:1fr 1fr;gap:.45rem;margin-top:.6rem}
+.titem{background:var(--bg3);border:1px solid var(--b);border-radius:9px;padding:.6rem;font-size:.67rem;color:var(--mut);line-height:1.5}
+.titem strong{color:var(--text);display:block;margin-bottom:.12rem;font-size:.69rem}
+.stable{width:100%;border-collapse:collapse;margin-top:.6rem;font-size:.68rem}
+.stable th{background:var(--bg3);color:var(--mut);font-family:'Space Mono',monospace;font-size:.53rem;letter-spacing:.06em;padding:.38rem .6rem;text-align:left;border-bottom:1px solid var(--b)}
+.stable td{padding:.45rem .6rem;border-bottom:1px solid rgba(42,42,52,.5);color:var(--mut)}
+.stable td:first-child{color:var(--text);font-weight:700}
+.dlist{display:flex;flex-direction:column;gap:.3rem}
+.ditem{background:rgba(248,113,113,.07);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:.4rem .62rem;font-size:.68rem;color:var(--mut);display:flex;align-items:flex-start;gap:.38rem}
+.ditem::before{content:'🚫';font-size:.68rem;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<header>
+  <div class=&quot;logo&quot;>GOLD<span>/</span>TRADER</div>
+  <div class=&quot;hclock&quot;><div class=&quot;hdot&quot;></div><span id=&quot;clk&quot;>--:--</span></div>
+</header>
+
+<!-- ═══ HORAIRES ═══ -->
+<div id=&quot;page-horaires&quot; class=&quot;page active&quot;>
+<div class=&quot;inner&quot;>
+
+  <div class=&quot;status-card&quot;>
+    <div class=&quot;status-top&quot;>
+      <div><h1>Sessions</h1><div class=&quot;sub&quot;>Heure de Paris · XAUUSD</div></div>
+      <div id=&quot;sbadge&quot; class=&quot;sbadge s-off&quot;>—</div>
+    </div>
+  </div>
+
+  <div class=&quot;slbl&quot;>Tes créneaux</div>
+
+  <div class=&quot;scard mine&quot;>
+    <div class=&quot;mbadge mb-s&quot;>SECONDAIRE</div>
+    <div class=&quot;stime&quot;>12h30<br>13h30</div>
+    <div class=&quot;sinfo&quot;><h3>Créneau du midi</h3><p>Transition Londres→NY. Volatilité réduite. Petits lots, priorité à l'analyse.</p></div>
+  </div>
+  <div class=&quot;scard mine-m&quot;>
+    <div class=&quot;mbadge mb-p&quot;>PRINCIPAL</div>
+    <div class=&quot;stime&quot;>17h00<br>21h00</div>
+    <div class=&quot;sinfo&quot;><h3>🔥 Session soir</h3><p>NY encore active. Dernier push 19h–21h possible. Après 21h : stop, plus d'opportunité.</p></div>
+  </div>
+
+  <div class=&quot;slbl&quot;>Toutes les sessions</div>
+
+  <div class=&quot;scard dim&quot;>
+    <div class=&quot;stime&quot;>00h–07h</div>
+    <div class=&quot;sinfo&quot;><h3>Asiatique</h3><p>Spreads élevés, faux mouvements. À éviter.</p></div>
+  </div>
+  <div class=&quot;scard hot&quot;>
+    <div class=&quot;stime&quot;>08h–11h</div>
+    <div class=&quot;sinfo&quot;><h3>⚡ Ouverture Londres</h3><p>Grosse liquidité, breakouts puissants. Top pour intraday.</p></div>
+  </div>
+  <div class=&quot;scard med&quot;>
+    <div class=&quot;stime&quot;>11h–14h30</div>
+    <div class=&quot;sinfo&quot;><h3>Transition</h3><p>Ton créneau midi est ici. Volatilité réduite, prudence.</p></div>
+  </div>
+  <div class=&quot;scard hot&quot;>
+    <div class=&quot;stime&quot;>14h30–17h</div>
+    <div class=&quot;sinfo&quot;><h3>🔥 Ouverture NY — PRIME</h3><p>Moment le plus volatil. NFP, CPI, FOMC tombent ici.</p></div>
+  </div>
+  <div class=&quot;scard med&quot;>
+    <div class=&quot;stime&quot;>17h–21h</div>
+    <div class=&quot;sinfo&quot;><h3>Fin session US</h3><p>Ton créneau principal. NY encore active, dernier push possible.</p></div>
+  </div>
+  <div class=&quot;scard dim&quot;>
+    <div class=&quot;stime&quot;>21h–00h</div>
+    <div class=&quot;sinfo&quot;><h3>Clôture</h3><p>Spreads remontent. Prépare la prochaine session.</p></div>
+  </div>
+
+  <div class=&quot;slbl&quot;>News à surveiller</div>
+
+  <div class=&quot;ncard&quot;>
+    <div class=&quot;nhead&quot;><h4>NFP — Non-Farm Payrolls</h4><span class=&quot;nipact ni-max&quot;>ÉNORME</span></div>
+    <div class=&quot;nwhen&quot;>📅 1er vendredi du mois · 14h30</div>
+    <div class=&quot;nrule&quot;>Chiffre fort → USD ↑ → <span class=&quot;dn&quot;>GOLD ↓</span><br>Chiffre faible → USD ↓ → <span class=&quot;up&quot;>GOLD ↑</span></div>
+  </div>
+  <div class=&quot;ncard&quot;>
+    <div class=&quot;nhead&quot;><h4>CPI — Inflation</h4><span class=&quot;nipact ni-hi&quot;>ÉLEVÉ</span></div>
+    <div class=&quot;nwhen&quot;>📅 Mensuel · 14h30</div>
+    <div class=&quot;nrule&quot;>Inflation ↑ → <span class=&quot;dn&quot;>GOLD ↓</span><br>Inflation ↓ → <span class=&quot;up&quot;>GOLD ↑</span></div>
+  </div>
+  <div class=&quot;ncard&quot;>
+    <div class=&quot;nhead&quot;><h4>FOMC — Décision Fed</h4><span class=&quot;nipact ni-max&quot;>TRÈS ÉLEVÉ</span></div>
+    <div class=&quot;nwhen&quot;>📅 8× par an · 20h00</div>
+    <div class=&quot;nrule&quot;>Hausse taux → <span class=&quot;dn&quot;>GOLD ↓</span><br>Baisse taux → <span class=&quot;up&quot;>GOLD ↑</span></div>
+  </div>
+  <div class=&quot;ncard&quot;>
+    <div class=&quot;nhead&quot;><h4>Powell Speech</h4><span class=&quot;nipact ni-gld&quot;>FORT</span></div>
+    <div class=&quot;nwhen&quot;>📅 Variable · discours Fed</div>
+    <div class=&quot;nrule&quot;>Hawkish → <span class=&quot;dn&quot;>GOLD ↓</span> · Dovish → <span class=&quot;up&quot;>GOLD ↑</span><br><span style=&quot;color:var(--or)&quot;>⚠ Mouvement violent possible</span></div>
+  </div>
+
+  <div class=&quot;slbl&quot;>Checklist journalière</div>
+  <div class=&quot;dbox&quot;>
+    <h3>✅ Avant de trader</h3>
+    <div id=&quot;ck&quot;>
+      <div class=&quot;ckitem&quot; onclick=&quot;chk(this)&quot;><input type=&quot;checkbox&quot;><label>Vérifier le calendrier économique (onglet Live)</label></div>
+      <div class=&quot;ckitem&quot; onclick=&quot;chk(this)&quot;><input type=&quot;checkbox&quot;><label>Vérifier le DXY et la tendance générale</label></div>
+      <div class=&quot;ckitem&quot; onclick=&quot;chk(this)&quot;><input type=&quot;checkbox&quot;><label>Identifier les niveaux clés du jour (S/R)</label></div>
+      <div class=&quot;ckitem&quot; onclick=&quot;chk(this)&quot;><input type=&quot;checkbox&quot;><label>Regarder le graphique XAUUSD — tendance en cours</label></div>
+      <div class=&quot;ckitem&quot; onclick=&quot;chk(this)&quot;><input type=&quot;checkbox&quot;><label>Placer des alertes sur les niveaux clés</label></div>
+      <div class=&quot;ckitem&quot; onclick=&quot;chk(this)&quot;><input type=&quot;checkbox&quot;><label>Écrire dans le journal après la session</label></div>
+    </div>
+    <div class=&quot;pgbar&quot;><div class=&quot;pgfill&quot; id=&quot;pf&quot; style=&quot;width:0%&quot;></div></div>
+    <div class=&quot;pglbl&quot; id=&quot;pl&quot;>0 / 6</div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══ LIVE ═══ -->
+<div id=&quot;page-live&quot; class=&quot;page&quot;>
+<div class=&quot;inner&quot;>
+
+  <div class=&quot;status-card&quot;>
+    <div class=&quot;status-top&quot;>
+      <div><h1>Live Market</h1><div class=&quot;sub&quot;>Ouvre les ressources directement</div></div>
+      <div id=&quot;sbadge2&quot; class=&quot;sbadge s-off&quot;>—</div>
+    </div>
+  </div>
+
+  <div class=&quot;slbl&quot;>Graphique &amp; prix</div>
+
+  <a href=&quot;https://www.tradingview.com/chart/?symbol=XAUUSD&quot; target=&quot;_blank&quot; class=&quot;lbtn&quot;>
+    <div class=&quot;lbtn-ico&quot; style=&quot;background:rgba(74,222,128,.15)&quot;>📊</div>
+    <div class=&quot;lbtn-txt&quot;><h4>TradingView — XAUUSD</h4><p>Graphique live · 15min recommandé</p></div>
+    <div class=&quot;lbtn-arr&quot;>↗</div>
+  </a>
+
+  <div class=&quot;slbl&quot;>Calendrier économique</div>
+
+  <a href=&quot;https://fr.investing.com/economic-calendar/&quot; target=&quot;_blank&quot; class=&quot;lbtn&quot;>
+    <div class=&quot;lbtn-ico&quot; style=&quot;background:rgba(251,146,60,.15)&quot;>📅</div>
+    <div class=&quot;lbtn-txt&quot;><h4>Investing.com</h4><p>Calendrier éco · filtrer sur USD</p></div>
+    <div class=&quot;lbtn-arr&quot;>↗</div>
+  </a>
+  <a href=&quot;https://www.forexfactory.com/calendar&quot; target=&quot;_blank&quot; class=&quot;lbtn&quot;>
+    <div class=&quot;lbtn-ico&quot; style=&quot;background:rgba(96,165,250,.15)&quot;>🏭</div>
+    <div class=&quot;lbtn-txt&quot;><h4>ForexFactory</h4><p>Calendrier + sentiment communauté</p></div>
+    <div class=&quot;lbtn-arr&quot;>↗</div>
+  </a>
+
+  <div class=&quot;slbl&quot;>Sentiment &amp; order flow</div>
+
+  <a href=&quot;https://www.myfxbook.com/community/outlook/XAUUSD&quot; target=&quot;_blank&quot; class=&quot;lbtn&quot;>
+    <div class=&quot;lbtn-ico&quot; style=&quot;background:rgba(248,113,113,.15)&quot;>🧭</div>
+    <div class=&quot;lbtn-txt&quot;><h4>Myfxbook — XAUUSD</h4><p>% acheteurs / vendeurs retail</p></div>
+    <div class=&quot;lbtn-arr&quot;>↗</div>
+  </a>
+  <a href=&quot;https://fxssi.com/current-ratio&quot; target=&quot;_blank&quot; class=&quot;lbtn&quot;>
+    <div class=&quot;lbtn-ico&quot; style=&quot;background:rgba(212,168,67,.15)&quot;>⚖️</div>
+    <div class=&quot;lbtn-txt&quot;><h4>FXSSI</h4><p>Order flow &amp; positions ouvertes</p></div>
+    <div class=&quot;lbtn-arr&quot;>↗</div>
+  </a>
+
+  <div class=&quot;slbl&quot;>Analyses &amp; news</div>
+
+  <a href=&quot;https://www.fxstreet.com/currencies/xauusd&quot; target=&quot;_blank&quot; class=&quot;lbtn&quot;>
+    <div class=&quot;lbtn-ico&quot; style=&quot;background:rgba(139,92,246,.15)&quot;>📰</div>
+    <div class=&quot;lbtn-txt&quot;><h4>FXStreet</h4><p>Analyses &amp; news OR en temps réel</p></div>
+    <div class=&quot;lbtn-arr&quot;>↗</div>
+  </a>
+  <a href=&quot;https://twitter.com/search?q=XAUUSD&amp;f=live&quot; target=&quot;_blank&quot; class=&quot;lbtn&quot;>
+    <div class=&quot;lbtn-ico&quot; style=&quot;background:rgba(96,165,250,.12)&quot;>🐦</div>
+    <div class=&quot;lbtn-txt&quot;><h4>Twitter/X — XAUUSD</h4><p>Dernières analyses en direct</p></div>
+    <div class=&quot;lbtn-arr&quot;>↗</div>
+  </a>
+
+  <div class=&quot;slbl&quot;>Indice du Dollar</div>
+
+  <a href=&quot;https://www.tradingview.com/chart/?symbol=TVC:DXY&quot; target=&quot;_blank&quot; class=&quot;lbtn&quot;>
+    <div class=&quot;lbtn-ico&quot; style=&quot;background:rgba(212,168,67,.12)&quot;>💵</div>
+    <div class=&quot;lbtn-txt&quot;><h4>DXY — Indice Dollar</h4><p>Si DXY ↑ → GOLD ↓ · Si DXY ↓ → GOLD ↑</p></div>
+    <div class=&quot;lbtn-arr&quot;>↗</div>
+  </a>
+
+</div>
+</div>
+
+<!-- ═══ PROGRAMME ═══ -->
+<div id=&quot;page-programme&quot; class=&quot;page&quot;>
+<div class=&quot;inner&quot;>
+
+  <div class=&quot;status-card&quot;>
+    <div class=&quot;status-top&quot;>
+      <div><h1>Programme</h1><div class=&quot;sub&quot;>4 modules · ~7 semaines</div></div>
+      <div class=&quot;sbadge s-warn&quot;>En cours</div>
+    </div>
+  </div>
+
+  <div class=&quot;slbl&quot;>Modules</div>
+
+  <div class=&quot;mcard&quot;>
+    <div class=&quot;mhead&quot; onclick=&quot;tog('m1')&quot;>
+      <div class=&quot;mnum m1&quot;>M01</div>
+      <div class=&quot;mmeta&quot;><h3>Comprendre les marchés</h3><p>Macro, DXY, sessions — 1 semaine</p></div>
+      <div class=&quot;marr&quot; id=&quot;a-m1&quot;>▼</div>
+    </div>
+    <div class=&quot;mbody&quot; id=&quot;b-m1&quot;>
+      <ul class=&quot;mlist&quot;>
+        <li>C'est quoi un marché financier</li>
+        <li>Pourquoi le GOLD est un actif refuge</li>
+        <li>Relation DXY ↔ Or : corrélation inverse</li>
+        <li>Sessions Londres / New York et leur impact</li>
+        <li>Lire un calendrier éco : NFP, CPI, FOMC</li>
+        <li>Acteurs du marché : banques centrales, institutionnels, retail</li>
+      </ul>
+      <div style=&quot;font-size:.62rem;color:var(--mut);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.32rem&quot;>📺 Vidéos YouTube</div>
+      <div class=&quot;vrec&quot;><div class=&quot;ytbtn&quot;>▶</div><div><h5>Andlil — Benoist Rousseau</h5><p>&quot;Andlil comment fonctionne le marché forex&quot;</p></div></div>
+      <div class=&quot;vrec&quot;><div class=&quot;ytbtn&quot;>▶</div><div><h5>Zonebourse / Xavier Delmas</h5><p>&quot;Xavier Delmas inflation dollar&quot;</p></div></div>
+      <div class=&quot;exbox&quot;><strong>🎯 Exercice</strong><br>Observer le GOLD sur TradingView 1 semaine sans trader. Noter les réactions aux news et aux sessions.</div>
+    </div>
+  </div>
+
+  <div class=&quot;mcard&quot;>
+    <div class=&quot;mhead&quot; onclick=&quot;tog('m2')&quot;>
+      <div class=&quot;mnum m2&quot;>M02</div>
+      <div class=&quot;mmeta&quot;><h3>Analyse technique</h3><p>Chandeliers, EMA, setups — 2 semaines</p></div>
+      <div class=&quot;marr&quot; id=&quot;a-m2&quot;>▼</div>
+    </div>
+    <div class=&quot;mbody&quot; id=&quot;b-m2&quot;>
+      <ul class=&quot;mlist&quot;>
+        <li>Chandeliers japonais : patterns de base</li>
+        <li>Supports, résistances, niveaux psychologiques</li>
+        <li>Tendance haussière / baissière / range</li>
+        <li>EMA 50 et EMA 200 sur XAUUSD</li>
+        <li>Breakout vs Fakeout</li>
+        <li>Structure : Higher High, Lower Low, CHoCH</li>
+        <li>Setups : retest, breakout matinal, rebond niveau clé</li>
+      </ul>
+      <div style=&quot;font-size:.62rem;color:var(--mut);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.32rem&quot;>📺 Vidéos YouTube</div>
+      <div class=&quot;vrec&quot;><div class=&quot;ytbtn&quot;>▶</div><div><h5>NewTrading — Maxime Parra</h5><p>&quot;NewTrading supports résistances débutant&quot;</p></div></div>
+      <div class=&quot;vrec&quot;><div class=&quot;ytbtn&quot;>▶</div><div><h5>Andlil — EMA &amp; tendances</h5><p>&quot;Andlil EMA 50 200 tendance&quot;</p></div></div>
+      <div class=&quot;exbox&quot;><strong>🎯 Exercice</strong><br>Backtester 10 trades sur l'historique TradingView. Patterns récurrents sur XAUUSD 15min.</div>
+    </div>
+  </div>
+
+  <div class=&quot;mcard&quot;>
+    <div class=&quot;mhead&quot; onclick=&quot;tog('m3')&quot;>
+      <div class=&quot;mnum m3&quot;>M03</div>
+      <div class=&quot;mmeta&quot;><h3>Gestion du risque</h3><p>R/R, SL/TP, lot size — 1 semaine</p></div>
+      <div class=&quot;marr&quot; id=&quot;a-m3&quot;>▼</div>
+    </div>
+    <div class=&quot;mbody&quot; id=&quot;b-m3&quot;>
+      <ul class=&quot;mlist&quot;>
+        <li>Risk/Reward : la base absolue</li>
+        <li>Règle 1–2% par trade selon capital</li>
+        <li>SL derrière un niveau clé, jamais au hasard</li>
+        <li>Calculer la taille de position (lot size)</li>
+        <li>Gagner souvent ≠ gagner bien</li>
+        <li>Erreurs : revanche, overtrading, élargir le SL</li>
+      </ul>
+      <div style=&quot;font-size:.62rem;color:var(--mut);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.32rem&quot;>📺 Vidéos YouTube</div>
+      <div class=&quot;vrec&quot;><div class=&quot;ytbtn&quot;>▶</div><div><h5>Le Trader du Dimanche</h5><p>&quot;Trader du dimanche gestion du risque trading&quot;</p></div></div>
+      <div class=&quot;vrec&quot;><div class=&quot;ytbtn&quot;>▶</div><div><h5>Le Trader du Dimanche</h5><p>&quot;Trader du dimanche stop loss take profit&quot;</p></div></div>
+      <div class=&quot;exbox&quot;><strong>🎯 Exercice</strong><br>Pour chaque setup M02, calculer SL / TP / lot size. R/R ≥ 1:2 obligatoire avant d'entrer.</div>
+    </div>
+  </div>
+
+  <div class=&quot;mcard&quot;>
+    <div class=&quot;mhead&quot; onclick=&quot;tog('m4')&quot;>
+      <div class=&quot;mnum m4&quot;>M04</div>
+      <div class=&quot;mmeta&quot;><h3>Pratique en démo</h3><p>Journal, stratégie — 2–3 semaines</p></div>
+      <div class=&quot;marr&quot; id=&quot;a-m4&quot;>▼</div>
+    </div>
+    <div class=&quot;mbody&quot; id=&quot;b-m4&quot;>
+      <ul class=&quot;mlist&quot;>
+        <li>Compte démo MT4/MT5 ou TradingView Paper</li>
+        <li>Une seule stratégie simple et répétable</li>
+        <li>Journal : entrée, sortie, raison, résultat, émotion</li>
+        <li>Analyser ses trades a posteriori</li>
+        <li>3 semaines démo profitable → réel avec micro-lots</li>
+      </ul>
+      <div style=&quot;font-size:.62rem;color:var(--mut);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.32rem&quot;>📺 Vidéos YouTube</div>
+      <div class=&quot;vrec&quot;><div class=&quot;ytbtn&quot;>▶</div><div><h5>NewTrading — Compte démo</h5><p>&quot;NewTrading compte démo trading&quot;</p></div></div>
+      <div class=&quot;vrec&quot;><div class=&quot;ytbtn&quot;>▶</div><div><h5>NewTrading — Journal</h5><p>&quot;NewTrading journal de trading&quot;</p></div></div>
+      <div class=&quot;exbox&quot;><strong>🎯 Objectif</strong><br>3 semaines démo + journal tenu. Résultats cohérents → micro-lots en réel uniquement.</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══ DOC ═══ -->
+<div id=&quot;page-doc&quot; class=&quot;page&quot;>
+<div class=&quot;inner&quot;>
+
+  <div class=&quot;status-card&quot;>
+    <div class=&quot;status-top&quot;><div><h1>Documentation</h1><div class=&quot;sub&quot;>Référence rapide GOLD</div></div></div>
+  </div>
+
+  <div class=&quot;slbl&quot;>Timeframes</div>
+  <div class=&quot;dbox&quot;>
+    <h3>📌 Meilleurs timeframes</h3>
+    <div class=&quot;trow&quot;>
+      <div class=&quot;titem&quot;><strong>Scalping</strong>1min, 5min, 15min<br>5–20 pips/mouvement</div>
+      <div class=&quot;titem&quot;><strong>Day Trading</strong>15min, 1h<br>50–200 pips/session</div>
+      <div class=&quot;titem&quot;><strong>Swing</strong>4h, Daily<br>500+ pips / plusieurs jours</div>
+      <div class=&quot;titem&quot;><strong>Pour toi</strong>15min/1h intraday. Évite le 1min au début.</div>
+    </div>
+  </div>
+
+  <div class=&quot;slbl&quot;>Stratégies</div>
+  <div class=&quot;dbox&quot;>
+    <h3>📈 Stratégies efficaces</h3>
+    <ul>
+      <li><strong style=&quot;color:var(--text)&quot;>Breakout matinal</strong> — Range 08h–09h puis cassure avec volume</li>
+      <li><strong style=&quot;color:var(--text)&quot;>Retest S/R</strong> — Retour sur le niveau cassé avant d'entrer</li>
+      <li><strong style=&quot;color:var(--text)&quot;>Tendance EMA</strong> — Direction EMA 50, filtre EMA 200</li>
+      <li><strong style=&quot;color:var(--text)&quot;>Niveaux psycho</strong> — Cassures/rejets sur 3000, 3050, 3100…</li>
+      <li><strong style=&quot;color:var(--text)&quot;>News trading</strong> — Attendre 5min après la news</li>
+    </ul>
+  </div>
+
+  <div class=&quot;slbl&quot;>SL / TP / Risk</div>
+  <div class=&quot;dbox&quot;>
+    <h3>🛑 Stop-Loss &amp; Take-Profit</h3>
+    <table class=&quot;stable&quot;>
+      <thead><tr><th>STYLE</th><th>TF</th><th>SL</th><th>TP</th></tr></thead>
+      <tbody>
+        <tr><td>Scalping</td><td>1–5min</td><td>50–100p</td><td>100–200p</td></tr>
+        <tr><td>Intraday</td><td>15m–1h</td><td>100–200p</td><td>200–500p</td></tr>
+        <tr><td>Swing</td><td>4h–D</td><td>300–500p</td><td>500–1000p</td></tr>
+      </tbody>
+    </table>
+    <div style=&quot;margin-top:.6rem;font-size:.68rem;color:var(--mut);line-height:1.5&quot;>⚠️ SL toujours derrière un niveau clé. Max <strong style=&quot;color:var(--gold)&quot;>1–2% du capital</strong> par trade.</div>
+  </div>
+
+  <div class=&quot;slbl&quot;>Niveaux psychologiques</div>
+  <div class=&quot;dbox&quot;>
+    <h3>💰 Niveaux à surveiller</h3>
+    <div class=&quot;trow&quot;>
+      <div class=&quot;titem&quot;><strong>Majeurs</strong>3000 · 3050 · 3100 · 3150 · 3200 · 3250</div>
+      <div class=&quot;titem&quot;><strong>Intermédiaires</strong>3010 · 3025 · 3075 · 3125 · 3175…</div>
+    </div>
+    <div style=&quot;margin-top:.6rem;font-size:.68rem;color:var(--mut);line-height:1.5&quot;>💡 80%+ retail acheteurs → le marché fait souvent l'inverse. Vérifier sur Myfxbook.</div>
+  </div>
+
+  <div class=&quot;slbl&quot;>Erreurs à éviter</div>
+  <div class=&quot;dbox&quot;>
+    <h3>⛔ Erreurs classiques</h3>
+    <div class=&quot;dlist&quot;>
+      <div class=&quot;ditem&quot;>Trader juste avant NFP / CPI / FOMC</div>
+      <div class=&quot;ditem&quot;>Trader entre 00h–07h — faux mouvements</div>
+      <div class=&quot;ditem&quot;>Entrer en plein milieu d'un mouvement</div>
+      <div class=&quot;ditem&quot;>Risquer plus de 1–2% du capital</div>
+      <div class=&quot;ditem&quot;>Élargir son SL parce que le trade va contre toi</div>
+      <div class=&quot;ditem&quot;>Trader par revanche après une perte</div>
+    </div>
+  </div>
+
+  <div class=&quot;slbl&quot;>Cheat sheet</div>
+  <div class=&quot;dbox&quot;>
+    <h3>⚡ Résumé ultra-rapide</h3>
+    <div class=&quot;trow&quot;>
+      <div class=&quot;titem&quot;><strong>Meilleurs horaires</strong>08h–11h &amp; 14h30–17h</div>
+      <div class=&quot;titem&quot;><strong>News</strong>NFP → CPI → FOMC → Powell</div>
+      <div class=&quot;titem&quot;><strong>Règle d'or</strong>DXY ↑ → GOLD ↓<br>DXY ↓ → GOLD ↑</div>
+      <div class=&quot;titem&quot;><strong>Risque max</strong>1–2% / trade, toujours</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══ BOTTOM NAV ══ -->
+<nav class=&quot;bnav&quot;>
+  <button class=&quot;active&quot; onclick=&quot;go('horaires',this)&quot;>
+    <span class=&quot;ico&quot;>🕐</span>Horaires
+  </button>
+  <button onclick=&quot;go('live',this)&quot;>
+    <span class=&quot;ico&quot;>🔗</span>Live
+  </button>
+  <button onclick=&quot;go('programme',this)&quot;>
+    <span class=&quot;ico&quot;>📚</span>Programme
+  </button>
+  <button onclick=&quot;go('doc',this)&quot;>
+    <span class=&quot;ico&quot;>📋</span>Doc
+  </button>
+</nav>
+
+<script>
+// ── CLOCK ──
+function tick(){
+  const n=new Date(),p=v=>String(v).padStart(2,'0');
+  document.getElementById('clk').textContent=p(n.getHours())+':'+p(n.getMinutes());
+  session(n.getHours(),n.getMinutes());
+}
+setInterval(tick,10000);tick();
+
+function session(h,m){
+  const t=h*60+m;
+  let txt,cls;
+  if(t>=750&amp;&amp;t<810)       {txt='⭐ Ton créneau midi';cls='s-mine';}
+  else if(t>=1020&amp;&amp;t<1260){txt='🔥 Ton créneau soir';cls='s-mine';}
+  else if(t>=480&amp;&amp;t<660)  {txt='🟢 Session Londres';cls='s-on';}
+  else if(t>=870&amp;&amp;t<1020) {txt='🔥 Session New York';cls='s-on';}
+  else if(t>=660&amp;&amp;t<870)  {txt='⚡ Transition';cls='s-warn';}
+  else                    {txt='🔴 Hors session';cls='s-off';}
+  ['sbadge','sbadge2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.textContent=txt;el.className='sbadge '+cls;}
+  });
+}
+
+// ── NAV ──
+function go(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.bnav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── ACCORDION ──
+function tog(id){
+  const b=document.getElementById('b-'+id),a=document.getElementById('a-'+id);
+  b.classList.toggle('open');
+  a.classList.toggle('open',b.classList.contains('open'));
+}
+
+// ── CHECKLIST ──
+function chk(item){
+  const cb=item.querySelector('input');
+  cb.checked=!cb.checked;
+  item.classList.toggle('done',cb.checked);
+  const t=document.querySelectorAll('#ck .ckitem').length;
+  const d=document.querySelectorAll('#ck .ckitem.done').length;
+  document.getElementById('pf').style.width=(d/t*100)+'%';
+  document.getElementById('pl').textContent=d+' / '+t;
+}
+</script>
+</body>
+</html>
+"></iframe>
+    <iframe class="app-frame" id="frame-programme" srcdoc="<!DOCTYPE html>
+<html lang=&quot;fr&quot;>
+<head>
+<meta charset=&quot;UTF-8&quot;>
+<meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;>
+<title>Mon Programme Complet</title>
+<link href=&quot;https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&amp;family=DM+Sans:wght@300;400;500&amp;display=swap&quot; rel=&quot;stylesheet&quot;>
+<style>
+  :root {
+    --bg: #0d0d0f; --bg2: #141416; --bg3: #1c1c1f; --bg4: #242428;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+    --text: #f0efe8; --muted: #888884; --muted2: #555552;
+    --accent: #c8f060; --red: #ff5a3c; --blue: #5b9fff; --amber: #ffb740; --purple: #b088ff;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 4rem; }
+
+  /* HEADER */
+  .header { padding: 2.5rem 1.5rem 2rem; border-bottom: 1px solid var(--border); position: relative; overflow: hidden; }
+  .header::before { content: ''; position: absolute; top: -60px; right: -60px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(200,240,96,0.12) 0%, transparent 70%); pointer-events: none; }
+  .header-label { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  .header h1 { font-family: 'Syne', sans-serif; font-size: clamp(26px, 6vw, 40px); font-weight: 800; line-height: 1.05; color: var(--text); margin-bottom: 10px; }
+  .header h1 span { color: var(--accent); }
+  .header-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 1rem; }
+  .hstat { font-size: 12px; color: var(--muted); }
+  .hstat strong { color: var(--text); font-weight: 500; }
+
+  /* NAV */
+  .nav-wrap { border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 10; }
+  .nav-scroll-wrap { position: relative; }
+  .nav-scroll-wrap::before, .nav-scroll-wrap::after { content: ''; position: absolute; top: 0; bottom: 0; width: 28px; pointer-events: none; z-index: 2; }
+  .nav-scroll-wrap::before { left: 0; background: linear-gradient(to right, var(--bg) 40%, transparent); }
+  .nav-scroll-wrap::after { right: 0; background: linear-gradient(to left, var(--bg) 40%, transparent); }
+  .nav { display: flex; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; padding: 0 1.5rem; -webkit-overflow-scrolling: touch; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav-btn { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; padding: 12px 13px 13px; border: none; background: transparent; color: var(--muted); cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; transition: all .2s; position: relative; top: 1px; flex-shrink: 0; }
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  /* WEEK COUNTER */
+  .week-counter { display: flex; align-items: center; gap: 14px; background: var(--bg2); border: 1px solid rgba(200,240,96,0.2); border-radius: 14px; padding: 14px 16px; margin-bottom: 1.25rem; }
+  .wc-num { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; color: var(--accent); line-height: 1; }
+  .wc-label { font-size: 14px; color: var(--text); font-weight: 500; margin-bottom: 3px; }
+  .wc-sub { font-size: 12px; color: var(--muted); }
+
+  /* CONTENT */
+  .content { padding: 1.5rem; }
+  .pane { display: none; }
+  .pane.active { display: block; }
+  .slabel { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted2); margin: 1.75rem 0 0.75rem; }
+
+  /* WEEK GRID */
+  .week-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .week-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 14px; transition: border-color .2s; }
+  .week-card:hover { border-color: var(--border2); transform: translateY(-2px); transition: border-color .2s, transform .2s; }
+  .week-card.hl-green { border-color: rgba(200,240,96,0.2); }
+  .week-card.hl-blue { border-color: rgba(91,159,255,0.2); }
+  .week-card.hl-amber { border-color: rgba(255,183,64,0.2); }
+  .week-card.hl-purple { border-color: rgba(176,136,255,0.2); }
+  .wday { font-size: 11px; color: var(--muted); margin-bottom: 5px; }
+  .wname { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .wname.c-green { color: var(--accent); } .wname.c-blue { color: var(--blue); } .wname.c-amber { color: var(--amber); } .wname.c-purple { color: var(--purple); }
+  .wdetail { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* LEGEND */
+  .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .leg-item { display: flex; align-items: center; gap: 8px; background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; }
+  .leg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .leg-name { font-size: 12px; color: var(--text); }
+  .leg-sub { font-size: 11px; color: var(--muted); }
+
+  /* SESSION HEADER */
+  .session-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .session-tag { font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 10px; border-radius: 6px; }
+  .tag-a { background: rgba(200,240,96,0.12); color: var(--accent); }
+  .tag-b { background: rgba(91,159,255,0.15); color: var(--blue); }
+  .tag-c { background: rgba(255,183,64,0.12); color: var(--amber); }
+  .tag-d { background: rgba(176,136,255,0.12); color: var(--purple); }
+  .tag-repos { background: rgba(136,136,132,0.12); color: var(--muted); }
+  .tag-n { background: rgba(200,240,96,0.12); color: var(--accent); }
+  .session-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--text); }
+  .session-sub { font-size: 13px; color: var(--muted); margin: 6px 0 1.25rem; line-height: 1.6; }
+
+  /* TIMELINE */
+  .timeline { display: flex; flex-direction: column; gap: 4px; }
+  .tl-row { display: grid; grid-template-columns: 90px 1fr; gap: 8px; align-items: stretch; }
+  .tl-time { font-size: 11px; color: var(--muted2); text-align: right; padding-right: 10px; display: flex; align-items: center; justify-content: flex-end; white-space: nowrap; }
+  .tl-block { border-radius: 10px; padding: 9px 13px; font-size: 13px; line-height: 1.4; border: 1px solid var(--border); }
+  .tl-label { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .tl-detail { font-size: 11px; opacity: 0.7; }
+  .bl-boulot { background: rgba(91,159,255,0.08); border-color: rgba(91,159,255,0.15); }
+  .bl-boulot .tl-label { color: var(--blue); }
+  .bl-sport-a { background: rgba(200,240,96,0.08); border-color: rgba(200,240,96,0.15); }
+  .bl-sport-a .tl-label { color: var(--accent); }
+  .bl-sport-b { background: rgba(91,159,255,0.08); border-color: rgba(91,159,255,0.15); }
+  .bl-sport-b .tl-label { color: var(--blue); }
+  .bl-sport-c { background: rgba(255,183,64,0.08); border-color: rgba(255,183,64,0.15); }
+  .bl-sport-c .tl-label { color: var(--amber); }
+  .bl-projet { background: rgba(176,136,255,0.08); border-color: rgba(176,136,255,0.15); }
+  .bl-projet .tl-label { color: var(--purple); }
+  .bl-gaming { background: rgba(255,90,60,0.06); border-color: rgba(255,90,60,0.12); }
+  .bl-gaming .tl-label { color: var(--red); }
+  .bl-repas { background: var(--bg3); border-color: var(--border); }
+  .bl-repas .tl-label { color: var(--muted); }
+  .bl-free { background: transparent; border-color: var(--border); }
+  .bl-free .tl-label { color: var(--muted2); }
+  .bl-nutri { background: rgba(200,240,96,0.05); border-color: rgba(200,240,96,0.1); }
+  .bl-nutri .tl-label { color: var(--accent); }
+
+  /* EXERCISE CARDS */
+  .ex-list { display: flex; flex-direction: column; gap: 6px; }
+  .ex-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; cursor: pointer; transition: border-color .2s, background .2s; display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: start; }
+  .ex-card:hover { border-color: var(--border2); background: var(--bg3); }
+  .ex-card.open { border-color: rgba(200,240,96,0.25); }
+  .ex-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); }
+  .ex-muscle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .ex-alt { font-size: 11px; color: var(--muted2); margin-top: 3px; }
+  .ex-badge { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--accent); text-align: right; white-space: nowrap; }
+  .ex-rest { font-size: 11px; color: var(--muted2); text-align: right; margin-top: 2px; }
+  .ex-tip { grid-column: 1 / -1; display: none; font-size: 12px; color: var(--muted); line-height: 1.7; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .ex-card.open .ex-tip { display: block; }
+
+  /* WARMUP */
+  .warmup-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .warmup-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .warmup-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .warmup-badge { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--muted); }
+
+  /* CIRCUIT BADGE */
+  .circuit-badge { display: inline-block; font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; background: rgba(255,183,64,0.12); color: var(--amber); margin-bottom: 8px; }
+
+  /* REST NOTE */
+  .rest-note { font-size: 12px; color: var(--muted); margin-top: 1rem; padding: 10px 14px; border-left: 2px solid rgba(200,240,96,0.3); line-height: 1.6; }
+
+  /* NUTRITION */
+  .meal-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 8px; }
+  .meal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .meal-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); }
+  .meal-time-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .meal-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; }
+  .pill-k { background: rgba(91,159,255,0.15); color: var(--blue); }
+  .pill-p { background: rgba(200,240,96,0.12); color: var(--accent); }
+  .food-list { display: flex; flex-direction: column; gap: 6px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .food-row { display: flex; justify-content: space-between; align-items: baseline; }
+  .food-name-n { font-size: 13px; color: var(--text); }
+  .food-qty { font-size: 12px; color: var(--muted); }
+  .food-note { font-size: 11px; color: var(--muted2); margin-top: 8px; line-height: 1.6; font-style: italic; }
+  .alt-block { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+  .alt-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted2); margin-bottom: 8px; }
+  .alt-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .alt-row:last-child { border-bottom: none; }
+  .alt-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+  .alt-name { font-size: 13px; color: var(--text); flex: 1; }
+  .alt-prot { font-size: 12px; font-weight: 500; color: var(--accent); }
+  .alt-kcal { font-size: 11px; color: var(--muted); }
+  .macro-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; margin-top: 8px; }
+  .macro-block-title { font-size: 11px; color: var(--muted); margin-bottom: 10px; font-weight: 500; }
+  .macro-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .macro-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 12px 10px; text-align: center; }
+  .macro-val { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; }
+  .macro-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .v-blue .macro-val { color: var(--blue); } .v-green .macro-val { color: var(--accent); } .v-amber .macro-val { color: var(--amber); } .v-red .macro-val { color: #ff5a3c; }
+
+  /* TIPS */
+  .tip-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-top: 8px; }
+  .tip-row { display: flex; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .tip-row:last-child { border-bottom: none; }
+  .tip-icon { width: 28px; height: 28px; border-radius: 8px; background: var(--bg4); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; }
+  .tip-label { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .tip-text { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+  @media (max-width: 400px) {
+    .week-grid { grid-template-columns: 1fr; }
+    .legend-grid { grid-template-columns: 1fr; }
+    .macro-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class=&quot;header&quot;>
+  <div class=&quot;header-label&quot;>Programme complet</div>
+  <h1>Mon Programme<br><span>Maison</span></h1>
+  <div class=&quot;header-stats&quot;>
+    <div class=&quot;hstat&quot;>Boulot <strong>8h – 17h15</strong></div>
+    <div class=&quot;hstat&quot;>Sport <strong>3x / sem</strong></div>
+    <div class=&quot;hstat&quot;>Matos <strong>2 haltères + chaise</strong></div>
+    <div class=&quot;hstat&quot;>Gaming <strong>21h – 23h30</strong></div>
+  </div>
+</div>
+
+<div class=&quot;nav-wrap&quot;>
+  <div class=&quot;nav-scroll-wrap&quot;>
+  <div class=&quot;nav&quot;>
+    <button class=&quot;nav-btn active&quot; onclick=&quot;showTab('overview', this)&quot;>Semaine</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('lun', this)&quot;>Lundi</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('mar', this)&quot;>Mardi</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('mer', this)&quot;>Mercredi</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('jeu', this)&quot;>Jeudi</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('ven', this)&quot;>Vendredi</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('sam', this)&quot;>Samedi</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('dim', this)&quot;>Dimanche</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('sa', this)&quot;>Séance A</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('sb', this)&quot;>Séance B</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('sc', this)&quot;>Séance C</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('nutri', this)&quot;>Nutrition</button>
+    <button class=&quot;nav-btn&quot; onclick=&quot;showTab('conseils', this)&quot;>Conseils</button>
+  </div>
+  </div>
+</div>
+
+<div class=&quot;content&quot;>
+
+  <!-- OVERVIEW -->
+  <div class=&quot;pane active&quot; id=&quot;tab-overview&quot;>
+    <div class=&quot;week-counter&quot;>
+      <div class=&quot;wc-num&quot; id=&quot;wc-num&quot;>—</div>
+      <div><div class=&quot;wc-label&quot; id=&quot;wc-label&quot;>Chargement...</div><div class=&quot;wc-sub&quot; id=&quot;wc-sub&quot;>Depuis le 2 mars 2026</div></div>
+    </div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Planning hebdomadaire</div>
+    <div class=&quot;week-grid&quot;>
+      <div class=&quot;week-card hl-purple&quot;><div class=&quot;wday&quot;>Lundi</div><div class=&quot;wname c-purple&quot;>Projet</div><div class=&quot;wdetail&quot;>Vente de sites web<br>18h – 21h</div></div>
+      <div class=&quot;week-card hl-green&quot;><div class=&quot;wday&quot;>Mardi</div><div class=&quot;wname c-green&quot;>Séance A</div><div class=&quot;wdetail&quot;>Pec + Triceps<br>18h – 18h50</div></div>
+      <div class=&quot;week-card hl-purple&quot;><div class=&quot;wday&quot;>Mercredi</div><div class=&quot;wname c-purple&quot;>Projet</div><div class=&quot;wdetail&quot;>Vente de sites web<br>18h – 21h</div></div>
+      <div class=&quot;week-card hl-blue&quot;><div class=&quot;wday&quot;>Jeudi</div><div class=&quot;wname c-blue&quot;>Séance B</div><div class=&quot;wdetail&quot;>Dos + Biceps<br>18h – 18h50</div></div>
+      <div class=&quot;week-card hl-purple&quot;><div class=&quot;wday&quot;>Vendredi</div><div class=&quot;wname c-purple&quot;>Projet</div><div class=&quot;wdetail&quot;>Bilan + vente de sites<br>18h – 21h</div></div>
+      <div class=&quot;week-card hl-amber&quot;><div class=&quot;wday&quot;>Samedi</div><div class=&quot;wname c-amber&quot;>Séance C</div><div class=&quot;wdetail&quot;>Jambes + Abs + Cardio<br>18h – 18h50</div></div>
+      <div class=&quot;week-card&quot;><div class=&quot;wday&quot;>Dimanche</div><div class=&quot;wname&quot;>Repos complet</div><div class=&quot;wdetail&quot;>Récupération</div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Légende</div>
+    <div class=&quot;legend-grid&quot;>
+      <div class=&quot;leg-item&quot;><div class=&quot;leg-dot&quot; style=&quot;background:var(--blue)&quot;></div><div><div class=&quot;leg-name&quot;>Boulot</div><div class=&quot;leg-sub&quot;>8h – 17h15</div></div></div>
+      <div class=&quot;leg-item&quot;><div class=&quot;leg-dot&quot; style=&quot;background:var(--accent)&quot;></div><div><div class=&quot;leg-name&quot;>Séance A — Pec+Tri</div><div class=&quot;leg-sub&quot;>Mardi</div></div></div>
+      <div class=&quot;leg-item&quot;><div class=&quot;leg-dot&quot; style=&quot;background:var(--blue)&quot;></div><div><div class=&quot;leg-name&quot;>Séance B — Dos+Bi</div><div class=&quot;leg-sub&quot;>Jeudi</div></div></div>
+      <div class=&quot;leg-item&quot;><div class=&quot;leg-dot&quot; style=&quot;background:var(--amber)&quot;></div><div><div class=&quot;leg-name&quot;>Séance C — Jambes</div><div class=&quot;leg-sub&quot;>Samedi</div></div></div>
+      <div class=&quot;leg-item&quot;><div class=&quot;leg-dot&quot; style=&quot;background:var(--purple)&quot;></div><div><div class=&quot;leg-name&quot;>Projet cash</div><div class=&quot;leg-sub&quot;>Lun / Mer / Ven</div></div></div>
+      <div class=&quot;leg-item&quot;><div class=&quot;leg-dot&quot; style=&quot;background:var(--red)&quot;></div><div><div class=&quot;leg-name&quot;>Gaming</div><div class=&quot;leg-sub&quot;>21h tous les jours</div></div></div>
+    </div>
+    <div class=&quot;rest-note&quot;>48h de récup entre chaque séance — Mardi → Jeudi → Samedi.<br>Jours projet : ~2h de travail sur la vente de sites, sans toucher au gaming.<br>Jour télétravail : option sport le midi si t'as l'énergie.</div>
+  </div>
+
+  <!-- LUNDI -->
+  <div class=&quot;pane&quot; id=&quot;tab-lun&quot;>
+    <div class=&quot;session-head&quot;><span class=&quot;session-tag tag-d&quot;>Lundi</span></div>
+    <div class=&quot;session-title&quot;>Projet</div>
+    <div class=&quot;session-sub&quot;>Jour projet — 2h sur la vente de sites web. Boulot en présentiel.</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Horaires</div>
+    <div class=&quot;timeline&quot;>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>7h – 8h</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Réveil + petit-déj</div><div class=&quot;tl-detail&quot;>Galettes avoine + fruits surgelés</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>8h – 17h15</div><div class=&quot;tl-block bl-boulot&quot;><div class=&quot;tl-label&quot;>Boulot</div><div class=&quot;tl-detail&quot;>Présentiel</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>12h – 13h</div><div class=&quot;tl-block bl-nutri&quot;><div class=&quot;tl-label&quot;>Midi — Protéines</div><div class=&quot;tl-detail&quot;>Thon / sardines / shaker whey + fruits + amandes</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>17h</div><div class=&quot;tl-block bl-nutri&quot;><div class=&quot;tl-label&quot;>Goûter</div><div class=&quot;tl-detail&quot;>Concombre + tomates + fromage blanc 0%</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>17h15 – 18h</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Décompression</div><div class=&quot;tl-detail&quot;>Transition boulot → perso</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>18h – 19h30</div><div class=&quot;tl-block bl-projet&quot;><div class=&quot;tl-label&quot;>Projet — vente de sites web</div><div class=&quot;tl-detail&quot;>Prospection, démos, création</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>19h30 – 20h30</div><div class=&quot;tl-block bl-repas&quot;><div class=&quot;tl-label&quot;>Repas du soir</div><div class=&quot;tl-detail&quot;>200g viande + 90g riz + légumes + huile olive</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>20h30 – 21h</div><div class=&quot;tl-block bl-projet&quot;><div class=&quot;tl-label&quot;>Projet — suite</div><div class=&quot;tl-detail&quot;>30 min de finitions</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>21h – 23h30</div><div class=&quot;tl-block bl-gaming&quot;><div class=&quot;tl-label&quot;>Gaming 🎮</div><div class=&quot;tl-detail&quot;>Créneau protégé</div></div></div>
+    </div>
+  </div>
+
+  <!-- MARDI -->
+  <div class=&quot;pane&quot; id=&quot;tab-mar&quot;>
+    <div class=&quot;session-head&quot;><span class=&quot;session-tag tag-a&quot;>Mardi · Séance A</span></div>
+    <div class=&quot;session-title&quot;>Pec + Triceps</div>
+    <div class=&quot;session-sub&quot;>Jour sport — 45 à 50 min à la maison. Voir onglet Séance A pour le détail complet des exercices.</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Horaires</div>
+    <div class=&quot;timeline&quot;>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>7h – 8h</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Réveil + petit-déj</div><div class=&quot;tl-detail&quot;>Galettes avoine + fruits surgelés</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>8h – 17h15</div><div class=&quot;tl-block bl-boulot&quot;><div class=&quot;tl-label&quot;>Boulot</div><div class=&quot;tl-detail&quot;>Présentiel ou télétravail</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>12h – 13h</div><div class=&quot;tl-block bl-nutri&quot;><div class=&quot;tl-label&quot;>Midi — Protéines</div><div class=&quot;tl-detail&quot;>Thon / sardines / shaker + fruits + amandes</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>17h</div><div class=&quot;tl-block bl-nutri&quot;><div class=&quot;tl-label&quot;>Goûter</div><div class=&quot;tl-detail&quot;>Concombre + tomates + fromage blanc 0%</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>17h15 – 18h</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Décompression</div><div class=&quot;tl-detail&quot;>Préparation séance</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>18h – 18h50</div><div class=&quot;tl-block bl-sport-a&quot;><div class=&quot;tl-label&quot;>💪 Séance A — Pec + Triceps</div><div class=&quot;tl-detail&quot;>45–50 min à la maison · voir onglet Séance A</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>18h50 – 19h30</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Douche + récup</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>19h30 – 20h30</div><div class=&quot;tl-block bl-repas&quot;><div class=&quot;tl-label&quot;>Repas du soir — post-workout</div><div class=&quot;tl-detail&quot;>220g viande + 110g riz + légumes (jour de séance)</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>21h – 23h30</div><div class=&quot;tl-block bl-gaming&quot;><div class=&quot;tl-label&quot;>Gaming 🎮</div><div class=&quot;tl-detail&quot;>Créneau protégé</div></div></div>
+    </div>
+  </div>
+
+  <!-- MERCREDI -->
+  <div class=&quot;pane&quot; id=&quot;tab-mer&quot;>
+    <div class=&quot;session-head&quot;><span class=&quot;session-tag tag-d&quot;>Mercredi</span></div>
+    <div class=&quot;session-title&quot;>Projet</div>
+    <div class=&quot;session-sub&quot;>Jour projet — 2h sur la vente de sites web. Boulot en présentiel.</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Horaires</div>
+    <div class=&quot;timeline&quot;>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>7h – 8h</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Réveil + petit-déj</div><div class=&quot;tl-detail&quot;>Galettes avoine + fruits surgelés</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>8h – 17h15</div><div class=&quot;tl-block bl-boulot&quot;><div class=&quot;tl-label&quot;>Boulot</div><div class=&quot;tl-detail&quot;>Présentiel</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>12h – 13h</div><div class=&quot;tl-block bl-nutri&quot;><div class=&quot;tl-label&quot;>Midi — Protéines</div><div class=&quot;tl-detail&quot;>Thon / sardines / shaker + fruits + amandes</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>17h</div><div class=&quot;tl-block bl-nutri&quot;><div class=&quot;tl-label&quot;>Goûter</div><div class=&quot;tl-detail&quot;>Concombre + tomates + fromage blanc 0%</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>17h15 – 18h</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Décompression</div><div class=&quot;tl-detail&quot;>Transition boulot → perso</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>18h – 19h30</div><div class=&quot;tl-block bl-projet&quot;><div class=&quot;tl-label&quot;>Projet — vente de sites web</div><div class=&quot;tl-detail&quot;>Prospection, démos, création</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>19h30 – 20h30</div><div class=&quot;tl-block bl-repas&quot;><div class=&quot;tl-label&quot;>Repas du soir</div><div class=&quot;tl-detail&quot;>200g viande + 90g riz + légumes</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>20h30 – 21h</div><div class=&quot;tl-block bl-projet&quot;><div class=&quot;tl-label&quot;>Projet — suite</div><div class=&quot;tl-detail&quot;>30 min de finitions</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>21h – 23h30</div><div class=&quot;tl-block bl-gaming&quot;><div class=&quot;tl-label&quot;>Gaming 🎮</div><div class=&quot;tl-detail&quot;>Créneau protégé</div></div></div>
+    </div>
+  </div>
+
+  <!-- JEUDI -->
+  <div class=&quot;pane&quot; id=&quot;tab-jeu&quot;>
+    <div class=&quot;session-head&quot;><span class=&quot;session-tag tag-b&quot;>Jeudi · Séance B</span></div>
+    <div class=&quot;session-title&quot;>Dos + Épaules + Biceps</div>
+    <div class=&quot;session-sub&quot;>Jour sport — 50 à 60 min à la maison. Voir onglet Séance B pour le détail complet.</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Horaires</div>
+    <div class=&quot;timeline&quot;>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>7h – 8h</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Réveil + petit-déj</div><div class=&quot;tl-detail&quot;>Galettes avoine + fruits surgelés</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>8h – 17h15</div><div class=&quot;tl-block bl-boulot&quot;><div class=&quot;tl-label&quot;>Boulot</div><div class=&quot;tl-detail&quot;>Présentiel ou télétravail</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>12h – 13h</div><div class=&quot;tl-block bl-nutri&quot;><div class=&quot;tl-label&quot;>Midi — Protéines</div><div class=&quot;tl-detail&quot;>Thon / sardines / shaker + fruits + amandes</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>17h</div><div class=&quot;tl-block bl-nutri&quot;><div class=&quot;tl-label&quot;>Goûter</div><div class=&quot;tl-detail&quot;>Concombre + tomates + fromage blanc 0%</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>17h15 – 18h</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Décompression</div><div class=&quot;tl-detail&quot;>Préparation séance</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>18h – 18h50</div><div class=&quot;tl-block bl-sport-b&quot;><div class=&quot;tl-label&quot;>💪 Séance B — Dos + Épaules + Biceps</div><div class=&quot;tl-detail&quot;>50–60 min à la maison · voir onglet Séance B</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>18h50 – 19h30</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Douche + récup</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>19h30 – 20h30</div><div class=&quot;tl-block bl-repas&quot;><div class=&quot;tl-label&quot;>Repas du soir — post-workout</div><div class=&quot;tl-detail&quot;>220g viande + 110g riz + légumes (jour de séance)</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>21h – 23h30</div><div class=&quot;tl-block bl-gaming&quot;><div class=&quot;tl-label&quot;>Gaming 🎮</div><div class=&quot;tl-detail&quot;>Créneau protégé</div></div></div>
+    </div>
+  </div>
+
+  <!-- VENDREDI -->
+  <div class=&quot;pane&quot; id=&quot;tab-ven&quot;>
+    <div class=&quot;session-head&quot;><span class=&quot;session-tag tag-d&quot;>Vendredi</span></div>
+    <div class=&quot;session-title&quot;>Projet + Bilan</div>
+    <div class=&quot;session-sub&quot;>Dernier jour de semaine — bilan de ce qui a été fait, et bloc projet pour finir fort.</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Horaires</div>
+    <div class=&quot;timeline&quot;>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>7h – 8h</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Réveil + petit-déj</div><div class=&quot;tl-detail&quot;>Galettes avoine + fruits surgelés</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>8h – 17h15</div><div class=&quot;tl-block bl-boulot&quot;><div class=&quot;tl-label&quot;>Boulot</div><div class=&quot;tl-detail&quot;>Présentiel</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>12h – 13h</div><div class=&quot;tl-block bl-nutri&quot;><div class=&quot;tl-label&quot;>Midi — Protéines</div><div class=&quot;tl-detail&quot;>Thon / sardines / shaker + fruits + amandes</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>17h</div><div class=&quot;tl-block bl-nutri&quot;><div class=&quot;tl-label&quot;>Goûter</div><div class=&quot;tl-detail&quot;>Concombre + tomates + fromage blanc 0%</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>17h15 – 18h</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Décompression</div><div class=&quot;tl-detail&quot;>Transition boulot → perso</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>18h – 19h30</div><div class=&quot;tl-block bl-projet&quot;><div class=&quot;tl-label&quot;>Projet — vente de sites web</div><div class=&quot;tl-detail&quot;>Prospection, devis, relances</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>19h30 – 20h30</div><div class=&quot;tl-block bl-repas&quot;><div class=&quot;tl-label&quot;>Repas du soir</div><div class=&quot;tl-detail&quot;>200g viande + 90g riz + légumes</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>20h30 – 21h</div><div class=&quot;tl-block bl-projet&quot;><div class=&quot;tl-label&quot;>Bilan semaine</div><div class=&quot;tl-detail&quot;>Ce qui a avancé, objectifs S+1</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>21h – 23h30</div><div class=&quot;tl-block bl-gaming&quot;><div class=&quot;tl-label&quot;>Gaming 🎮</div><div class=&quot;tl-detail&quot;>Créneau protégé</div></div></div>
+    </div>
+  </div>
+
+  <!-- SAMEDI -->
+  <div class=&quot;pane&quot; id=&quot;tab-sam&quot;>
+    <div class=&quot;session-head&quot;><span class=&quot;session-tag tag-c&quot;>Samedi · Séance C</span></div>
+    <div class=&quot;session-title&quot;>Jambes + Abs + Cardio</div>
+    <div class=&quot;session-sub&quot;>Journée libre — une seule contrainte : la séance. Voir onglet Séance C pour le détail complet.</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Horaires</div>
+    <div class=&quot;timeline&quot;>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>Matin</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Libre</div><div class=&quot;tl-detail&quot;>Grasse mat, sorties, vie perso</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>Après-midi</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Libre</div><div class=&quot;tl-detail&quot;>Restos du Cœur, moto, pêche...</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>18h – 18h50</div><div class=&quot;tl-block bl-sport-c&quot;><div class=&quot;tl-label&quot;>💪 Séance C — Jambes + Abs + Cardio</div><div class=&quot;tl-detail&quot;>45–50 min à la maison · voir onglet Séance C</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>18h50 – 19h30</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Douche + récup</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>19h30 – 20h30</div><div class=&quot;tl-block bl-repas&quot;><div class=&quot;tl-label&quot;>Repas du soir</div><div class=&quot;tl-detail&quot;>200g viande + 90g riz + légumes</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>21h – 23h30</div><div class=&quot;tl-block bl-gaming&quot;><div class=&quot;tl-label&quot;>Gaming 🎮</div><div class=&quot;tl-detail&quot;>Créneau protégé</div></div></div>
+    </div>
+  </div>
+
+  <!-- DIMANCHE -->
+  <div class=&quot;pane&quot; id=&quot;tab-dim&quot;>
+    <div class=&quot;session-head&quot;><span class=&quot;session-tag tag-repos&quot;>Dimanche</span></div>
+    <div class=&quot;session-title&quot;>Repos complet</div>
+    <div class=&quot;session-sub&quot;>Aucune contrainte. Muscles et mental récupèrent. Tu reviens lundi à 100%.</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Horaires</div>
+    <div class=&quot;timeline&quot;>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>Toute la journée</div><div class=&quot;tl-block bl-free&quot;><div class=&quot;tl-label&quot;>Repos total</div><div class=&quot;tl-detail&quot;>Vie sociale, famille, activités plaisir</div></div></div>
+      <div class=&quot;tl-row&quot;><div class=&quot;tl-time&quot;>21h – 23h30</div><div class=&quot;tl-block bl-gaming&quot;><div class=&quot;tl-label&quot;>Gaming 🎮</div><div class=&quot;tl-detail&quot;>Créneau protégé</div></div></div>
+    </div>
+    <div class=&quot;rest-note&quot;>Le dimanche repos = la raison pour laquelle tu tiendras sur la durée. Aucune culpabilité.</div>
+  </div>
+
+  <!-- SEANCE A -->
+  <div class=&quot;pane&quot; id=&quot;tab-sa&quot;>
+    <div class=&quot;session-head&quot;><span class=&quot;session-tag tag-a&quot;>Mardi · Séance A</span></div>
+    <div class=&quot;session-title&quot;>Pec + Triceps + Boxe</div>
+    <div class=&quot;session-sub&quot;>Push + prépa boxe. Échauffement boxing, explosivité intégrée, finisher shadow boxing.</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Échauffement Boxe — 8 min</div>
+    <div class=&quot;warmup-card&quot;><div><div class=&quot;warmup-name&quot;>Corde à sauter</div><div class=&quot;warmup-detail&quot;>Sauts de base deux pieds — rythme régulier</div></div><div class=&quot;warmup-badge&quot;>5 min</div></div>
+    <div class=&quot;warmup-card&quot; style=&quot;margin-top:6px;&quot;><div><div class=&quot;warmup-name&quot;>Jeu de jambes en garde</div><div class=&quot;warmup-detail&quot;>Déplacements avant/arrière/côtés en pas chassés</div></div><div class=&quot;warmup-badge&quot;>3 min</div></div>
+    <div class=&quot;slabel&quot;>Pecs</div>
+    <div class=&quot;ex-list&quot;>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Pompes larges au sol</div><div class=&quot;ex-muscle&quot;>Pecs — composé de base</div><div class=&quot;ex-alt&quot;>Poids du corps</div><div class=&quot;ex-tip&quot;>Mains plus larges que les épaules. Corps rigide. Descends jusqu'à frôler le sol. Coudes à ~45°. Pieds surélevés sur la chaise = haut du pec.</div></div><div><div class=&quot;ex-badge&quot;>4 × max</div><div class=&quot;ex-rest&quot;>Repos 75 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Pompes clap — explosivité boxe</div><div class=&quot;ex-muscle&quot;>Pecs + explosivité — puissance du cross</div><div class=&quot;ex-alt&quot;>Poids du corps</div><div class=&quot;ex-tip&quot;>Enchaîne après les pompes larges. Descends normalement, pousse fort pour décoller les mains et claquer. Si trop dur : pompes avec poussée explosive sans clap. 6–8 reps max.</div></div><div><div class=&quot;ex-badge&quot;>1 × 6–8</div><div class=&quot;ex-rest&quot;>Repos 60 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Écarté haltères au sol</div><div class=&quot;ex-muscle&quot;>Pecs — isolation en étirement</div><div class=&quot;ex-alt&quot;>Haltères</div><div class=&quot;ex-tip&quot;>Allongé sur le dos, bras tendus. Descends les haltères sur les côtés, coudes légèrement fléchis. Remonte en enlaçant un arbre.</div></div><div><div class=&quot;ex-badge&quot;>3 × 12–15</div><div class=&quot;ex-rest&quot;>Repos 60 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Développé haltères au sol</div><div class=&quot;ex-muscle&quot;>Pecs + épaules — press au sol</div><div class=&quot;ex-alt&quot;>Haltères</div><div class=&quot;ex-tip&quot;>Allongé sur le dos, haltères de chaque côté. Coudes au sol au départ, pousse vers le haut. Contrôle la phase basse.</div></div><div><div class=&quot;ex-badge&quot;>3 × 10–12</div><div class=&quot;ex-rest&quot;>Repos 75 s</div></div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Triceps</div>
+    <div class=&quot;ex-list&quot;>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Dips sur chaise</div><div class=&quot;ex-muscle&quot;>Triceps + bas des pecs</div><div class=&quot;ex-alt&quot;>Chaise</div><div class=&quot;ex-tip&quot;>Mains sur le bord de la chaise, jambes tendues. Descends à 90° aux coudes. Coudes proches du corps.</div></div><div><div class=&quot;ex-badge&quot;>3 × max</div><div class=&quot;ex-rest&quot;>Repos 75 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Pompes diamant rapides — explosivité boxe</div><div class=&quot;ex-muscle&quot;>Triceps — extension explosive du jab/cross</div><div class=&quot;ex-alt&quot;>Poids du corps</div><div class=&quot;ex-tip&quot;>Enchaîne après les dips. Mains en diamant sous la poitrine, coudes rasent le corps. Descente contrôlée, remontée rapide et explosive. Simule l'extension du bras à l'impact.</div></div><div><div class=&quot;ex-badge&quot;>1 × 8–10</div><div class=&quot;ex-rest&quot;>Repos 60 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Extension triceps haltère (french press)</div><div class=&quot;ex-muscle&quot;>Triceps — chef long</div><div class=&quot;ex-alt&quot;>1 haltère</div><div class=&quot;ex-tip&quot;>Allongé ou assis. Tiens un haltère à deux mains au-dessus de la tête. Descends derrière la tête en fléchissant les coudes. Coudes fixes.</div></div><div><div class=&quot;ex-badge&quot;>3 × 12–15</div><div class=&quot;ex-rest&quot;>Repos 60 s</div></div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Finisher Shadow Boxing — 9 min</div>
+    <div class=&quot;ex-list&quot;>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Round 1 — Garde + déplacements</div><div class=&quot;ex-muscle&quot;>Technique pure — jeu de jambes</div><div class=&quot;ex-alt&quot;>Pas de frappes</div><div class=&quot;ex-tip&quot;>Garde haute, avancer/reculer/esquiver. Pas de frappes. Juste bouger en garde 3 min. Repos 1 min.</div></div><div><div class=&quot;ex-badge&quot;>3 min</div><div class=&quot;ex-rest&quot;>Repos 1 min</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Round 2 — Jab uniquement</div><div class=&quot;ex-muscle&quot;>Technique — frappe de base</div><div class=&quot;ex-alt&quot;>Main avant</div><div class=&quot;ex-tip&quot;>Un seul coup répété. Jab propre, garde haute entre chaque frappe. Expire à chaque impact. La répétition grave le mouvement. Repos 1 min.</div></div><div><div class=&quot;ex-badge&quot;>3 min</div><div class=&quot;ex-rest&quot;>Repos 1 min</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Round 3 — Jab + Cross</div><div class=&quot;ex-muscle&quot;>Combo de base — le plus utilisé en boxe</div><div class=&quot;ex-alt&quot;>Enchaînement 1-2</div><div class=&quot;ex-tip&quot;>Jab (main avant) + Cross (main arrière avec rotation du bassin). Garde haute entre chaque combo. Accélère progressivement sur les 30 dernières secondes.</div></div><div><div class=&quot;ex-badge&quot;>3 min</div></div></div>
+    </div>
+    <div class=&quot;rest-note&quot;>Durée estimée : 65–70 min · Quand les pompes larges dépassent 20 reps → ajoute un sac à dos lesté</div>
+  </div>
+
+  <!-- SEANCE B -->
+  <div class=&quot;pane&quot; id=&quot;tab-sb&quot;>
+    <div class=&quot;session-head&quot;><span class=&quot;session-tag tag-b&quot;>Jeudi · Séance B</span></div>
+    <div class=&quot;session-title&quot;>Dos + Épaules + Biceps + Boxe</div>
+    <div class=&quot;session-sub&quot;>Pull + prépa boxe. Cardio fractionné en finisher, pivots dans le jeu de jambes.</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Échauffement Boxe — 8 min</div>
+    <div class=&quot;warmup-card&quot;><div><div class=&quot;warmup-name&quot;>Corde à sauter — pas alterné</div><div class=&quot;warmup-detail&quot;>Alterne les pieds comme si tu courais — plus difficile que séance A</div></div><div class=&quot;warmup-badge&quot;>5 min</div></div>
+    <div class=&quot;warmup-card&quot; style=&quot;margin-top:6px;&quot;><div><div class=&quot;warmup-name&quot;>Jeu de jambes + pivots</div><div class=&quot;warmup-detail&quot;>Avance, pivote sur le pied avant pour changer d'angle, recule</div></div><div class=&quot;warmup-badge&quot;>3 min</div></div>
+    <div class=&quot;slabel&quot;>Dos</div>
+    <div class=&quot;ex-list&quot;>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Rowing haltères un bras (appui chaise)</div><div class=&quot;ex-muscle&quot;>Dos — grand dorsal + rhomboïdes</div><div class=&quot;ex-alt&quot;>1 haltère + chaise</div><div class=&quot;ex-tip&quot;>Un genou et une main posés sur la chaise. Tire le haltère vers la hanche, dos plat. Serre l'omoplate en haut. Contrôle la descente. C'est l'exercice dos le plus efficace sans barre de traction.</div></div><div><div class=&quot;ex-badge&quot;>4 × 10–12</div><div class=&quot;ex-rest&quot;>Repos 75 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Rowing haltères penché (deux bras)</div><div class=&quot;ex-muscle&quot;>Dos — épaisseur</div><div class=&quot;ex-alt&quot;>2 haltères</div><div class=&quot;ex-tip&quot;>Buste penché à ~45°, dos plat. Tire les deux haltères vers le nombril simultanément. Serre les omoplates. Reste penché pendant tout le mouvement.</div></div><div><div class=&quot;ex-badge&quot;>3 × 10–12</div><div class=&quot;ex-rest&quot;>Repos 75 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Superman / Bird dog — alternés</div><div class=&quot;ex-muscle&quot;>Lombaires + core — 4 séries alternées</div><div class=&quot;ex-alt&quot;>Poids du corps</div><div class=&quot;ex-tip&quot;>S1 → Superman : allongé sur le ventre, soulève bras + jambes, tiens 2 s. S2 → Bird dog : à quatre pattes, étends bras gauche + jambe droite, tiens 2 s, alterne. S3 → Superman. S4 → Bird dog. 90 s de repos entre chaque série.</div></div><div><div class=&quot;ex-badge&quot;>4 séries alt.</div><div class=&quot;ex-rest&quot;>×15 / ×10 côté</div></div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Épaules</div>
+    <div class=&quot;ex-list&quot;>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Développé épaules haltères assis</div><div class=&quot;ex-muscle&quot;>Épaules — antérieur + médian</div><div class=&quot;ex-alt&quot;>2 haltères + chaise</div><div class=&quot;ex-tip&quot;>Assis sur la chaise, dos droit. Descends les haltères à hauteur d'oreilles. Pousse vers le haut sans verrouiller les coudes. Expire en poussant.</div></div><div><div class=&quot;ex-badge&quot;>3 × 10–12</div><div class=&quot;ex-rest&quot;>Repos 75 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Élévations latérales haltères</div><div class=&quot;ex-muscle&quot;>Épaules — faisceau médian</div><div class=&quot;ex-alt&quot;>2 haltères</div><div class=&quot;ex-tip&quot;>Poids léger. Légère inclinaison du buste. Monte jusqu'à hauteur d'épaule. Contrôle la descente. Évite de balancer le dos.</div></div><div><div class=&quot;ex-badge&quot;>3 × 15–20</div><div class=&quot;ex-rest&quot;>Repos 60 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Face pull haltères (oiseau penché)</div><div class=&quot;ex-muscle&quot;>Épaules — faisceau postérieur</div><div class=&quot;ex-alt&quot;>2 haltères</div><div class=&quot;ex-tip&quot;>Buste penché à ~90°, dos plat. Élève les haltères sur les côtés comme un oiseau qui ouvre les ailes. Serre les omoplates en haut. Essentiel pour les épaules arrière.</div></div><div><div class=&quot;ex-badge&quot;>3 × 12–15</div><div class=&quot;ex-rest&quot;>Repos 60 s</div></div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Biceps + avant-bras</div>
+    <div class=&quot;ex-list&quot;>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Curl concentré sur cuisse</div><div class=&quot;ex-muscle&quot;>Biceps — chef long + court</div><div class=&quot;ex-alt&quot;>1 haltère + chaise</div><div class=&quot;ex-tip&quot;>Assis sur la chaise, pose l'arrière du bras (triceps) sur l'intérieur de la cuisse, coude calé contre le genou — ton pupitre maison. Ça fixe le coude et élimine le balancement qui fait mal. Descends complètement, remonte en contractant. Alterne les bras.</div></div><div><div class=&quot;ex-badge&quot;>3 × 10–12</div><div class=&quot;ex-rest&quot;>Repos 60 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Curl marteau haltères</div><div class=&quot;ex-muscle&quot;>Brachial + avant-bras</div><div class=&quot;ex-alt&quot;>2 haltères</div><div class=&quot;ex-tip&quot;>Prise neutre (pouce vers le haut). Alterné ou simultané. Lent et contrôlé. Donne l'épaisseur du bras.</div></div><div><div class=&quot;ex-badge&quot;>3 × 10–12</div><div class=&quot;ex-rest&quot;>Repos 60 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Wrist curl au t-shirt</div><div class=&quot;ex-muscle&quot;>Avant-bras — fléchisseurs</div><div class=&quot;ex-alt&quot;>1 haltère + t-shirt</div><div class=&quot;ex-tip&quot;>Ta technique : enroule un t-shirt autour de l'haltère pour une meilleure prise. Coude posé sur la cuisse, poignet dans le vide. Laisse descendre jusqu'aux doigts, fléchis vers le haut. Amplitude complète. Enchaîne avec la version inverse (dos de la main vers le haut).</div></div><div><div class=&quot;ex-badge&quot;>3 × 15–20</div><div class=&quot;ex-rest&quot;>Repos 45 s</div></div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Explosivité Boxe — intégrée</div>
+    <div class=&quot;ex-list&quot;>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Squats sautés</div><div class=&quot;ex-muscle&quot;>Jambes explosives — appuis rapides en combat</div><div class=&quot;ex-alt&quot;>Poids du corps</div><div class=&quot;ex-tip&quot;>À faire après les élévations latérales. Descends en squat, saute le plus haut possible, réceptionne souple. La puissance en boxe part des jambes — ce mouvement te fait prendre conscience du transfert jambes → bras.</div></div><div><div class=&quot;ex-badge&quot;>2 × 10</div><div class=&quot;ex-rest&quot;>Repos 60 s</div></div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Finisher Cardio Boxe — 12 min</div>
+    <div class=&quot;ex-list&quot;>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Round 1 — Intervals corde / mountain climbers</div><div class=&quot;ex-muscle&quot;>Cardio fractionné — endurance combat</div><div class=&quot;ex-alt&quot;>Intensité maximale</div><div class=&quot;ex-tip&quot;>20 sec à fond (corde ou mountain climbers) / 10 sec repos × 6. Simule l'intensité variable d'un round de boxe.</div></div><div><div class=&quot;ex-badge&quot;>3 min</div><div class=&quot;ex-rest&quot;>Repos 1 min</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Round 2 — Shadow boxing accéléré</div><div class=&quot;ex-muscle&quot;>Technique sous fatigue — condition réelle de combat</div><div class=&quot;ex-alt&quot;>Jab / Cross continu</div><div class=&quot;ex-tip&quot;>Jab/cross en continu. Accélère sur les 30 dernières secondes de chaque minute. Simule la fin de round où tu dois finir fort malgré la fatigue. Expire à chaque frappe.</div></div><div><div class=&quot;ex-badge&quot;>3 min</div><div class=&quot;ex-rest&quot;>Repos 1 min</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Round 3 — Burpees version boxe</div><div class=&quot;ex-muscle&quot;>Coordination + explosivité + cardio</div><div class=&quot;ex-alt&quot;>Burpee + combo</div><div class=&quot;ex-tip&quot;>Burpee → relève-toi → 2 jabs + 1 cross → prochain burpee. Forme propre, pas de précipitation. C'est le round le plus dur.</div></div><div><div class=&quot;ex-badge&quot;>3 min</div></div></div>
+    </div>
+    <div class=&quot;rest-note&quot;>Durée estimée : 70–75 min · Quand t'as une barre de traction, dis-le moi — je remplace les rowings par des tractions</div>
+  </div>
+
+  <!-- SEANCE C -->
+  <div class=&quot;pane&quot; id=&quot;tab-sc&quot;>
+    <div class=&quot;session-head&quot;><span class=&quot;session-tag tag-c&quot;>Samedi · Séance C</span></div>
+    <div class=&quot;session-title&quot;>Jambes + Abdos + Cardio Boxe</div>
+    <div class=&quot;session-sub&quot;>La séance la plus complète et la plus efficace pour la recompo. Jambes explosives, abdos renforcés, finisher 4 rounds.</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Échauffement Boxe — 8 min</div>
+    <div class=&quot;warmup-card&quot;><div><div class=&quot;warmup-name&quot;>Corde à sauter — progression</div><div class=&quot;warmup-detail&quot;>Sauts de base ou pas alterné selon ton niveau. Double under si tu maîtrises.</div></div><div class=&quot;warmup-badge&quot;>5 min</div></div>
+    <div class=&quot;warmup-card&quot; style=&quot;margin-top:6px;&quot;><div><div class=&quot;warmup-name&quot;>Jeu de jambes + esquives (slip)</div><div class=&quot;warmup-detail&quot;>Déplacements en garde + esquive gauche/droite en penchant le buste</div></div><div class=&quot;warmup-badge&quot;>3 min</div></div>
+    <div class=&quot;slabel&quot;>Jambes — explosivité intégrée</div>
+    <div class=&quot;ex-list&quot;>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Squat goblet — 3 séries + 1 sauté</div><div class=&quot;ex-muscle&quot;>Quadriceps + core + explosivité</div><div class=&quot;ex-alt&quot;>1 haltère</div><div class=&quot;ex-tip&quot;>3 séries goblet classiques (90 s repos) + 1 série squats sautés × 10 (60 s repos). Le saut développe l'explosivité des appuis en boxe.</div></div><div><div class=&quot;ex-badge&quot;>3×12–15 + 1×10</div><div class=&quot;ex-rest&quot;>Repos 90/60 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Fentes sautées</div><div class=&quot;ex-muscle&quot;>Quadriceps + explosivité — entrée offensive en boxe</div><div class=&quot;ex-alt&quot;>Poids du corps</div><div class=&quot;ex-tip&quot;>Remplace les fentes classiques. Descends en fente, saute et change de jambe en l'air. Simule exactement le mouvement d'entrée rapide sur l'adversaire. Si trop dur : fentes classiques.</div></div><div><div class=&quot;ex-badge&quot;>3 × 8/jambe</div><div class=&quot;ex-rest&quot;>Repos 75 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Romanian deadlift haltères</div><div class=&quot;ex-muscle&quot;>Ischio-jambiers + bas du dos</div><div class=&quot;ex-alt&quot;>2 haltères</div><div class=&quot;ex-tip&quot;>Garde tel quel — les ischio sont critiques pour la stabilité en garde. Penche le buste dos plat, descends jusqu'à l'étirement, remonte en contractant.</div></div><div><div class=&quot;ex-badge&quot;>3 × 12–15</div><div class=&quot;ex-rest&quot;>Repos 75 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Mollets debout + 1 série sautés</div><div class=&quot;ex-muscle&quot;>Mollets — sur la pointe des pieds en boxe</div><div class=&quot;ex-alt&quot;>Poids du corps / haltère</div><div class=&quot;ex-tip&quot;>3 séries normales + 1 série mollets sautés × 15 (saute sur la pointe des pieds). En boxe tu es constamment sur les appuis — des mollets explosifs = déplacements plus rapides.</div></div><div><div class=&quot;ex-badge&quot;>3×20–25 + 1×15</div><div class=&quot;ex-rest&quot;>Repos 45 s</div></div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Circuit Abdos — 2 tours</div>
+    <div class=&quot;circuit-badge&quot;>Circuit · 30 s repos entre exercices · 90 s entre tours</div>
+    <div class=&quot;ex-list&quot;>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Gainage planche</div><div class=&quot;ex-muscle&quot;>Core — stabilité anti-extension</div><div class=&quot;ex-tip&quot;>Dos plat, hanches dans l'axe. Commence à 40 s, progresse vers 60 s.</div></div><div><div class=&quot;ex-badge&quot;>2 × 40 s</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Crunch bicycle</div><div class=&quot;ex-muscle&quot;>Obliques + rectus abdominis</div><div class=&quot;ex-tip&quot;>Rotation du coude vers le genou opposé. 2 s par rep. Contrôlé, pas de balancement du cou.</div></div><div><div class=&quot;ex-badge&quot;>2 × 20 reps</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Crunch oblique / Crunch latéral — alternés</div><div class=&quot;ex-muscle&quot;>Obliques — 4 séries alternées sur 2 tours</div><div class=&quot;ex-tip&quot;>S1 → Crunch oblique : monte en diagonale vers le genou, 10 reps/côté. S2 → Crunch latéral : allongé, mains sur les cuisses, glisse vers les pieds sur un côté, 10 reps/côté. S3 → oblique. S4 → latéral.</div></div><div><div class=&quot;ex-badge&quot;>× 10/côté</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Russian twist</div><div class=&quot;ex-muscle&quot;>Obliques — rotation du crochet et uppercut</div><div class=&quot;ex-alt&quot;>Haltère léger optionnel</div><div class=&quot;ex-tip&quot;>Assis, pieds légèrement levés, buste incliné. Tourne le buste à gauche puis à droite. Exactement le mouvement du crochet. Haltère léger si tu veux charger. 1 rep = gauche + droite.</div></div><div><div class=&quot;ex-badge&quot;>2 × 20 reps</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Relevés de jambes</div><div class=&quot;ex-muscle&quot;>Bas des abdos — absorber les coups au corps</div><div class=&quot;ex-alt&quot;>Poids du corps</div><div class=&quot;ex-tip&quot;>Allongé sur le dos, mains sous les fessiers. Monte les jambes tendues jusqu'à 90°, descends lentement sans toucher le sol. Le bas des abdos absorbe les coups au corps en boxe — renforce-les maintenant.</div></div><div><div class=&quot;ex-badge&quot;>2 × 15 reps</div></div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Finisher Boxe — 4 rounds</div>
+    <div class=&quot;circuit-badge&quot;>1 min repos entre chaque round</div>
+    <div class=&quot;ex-list&quot;>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Round 1 — Shadow boxing jab/cross/crochet</div><div class=&quot;ex-muscle&quot;>Technique — premier enchaînement 3 coups</div><div class=&quot;ex-alt&quot;>Garde haute entre combos</div><div class=&quot;ex-tip&quot;>Jab (main avant) + Cross (main arrière + rotation bassin) + Crochet gauche. Lent d'abord, accélère progressivement. Garde haute entre chaque combo. Expire à chaque frappe.</div></div><div><div class=&quot;ex-badge&quot;>3 min</div><div class=&quot;ex-rest&quot;>Repos 1 min</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Round 2 — Cardio pur</div><div class=&quot;ex-muscle&quot;>Endurance combat — le round le plus dur</div><div class=&quot;ex-alt&quot;>Intensité maximale</div><div class=&quot;ex-tip&quot;>30 s burpees / 30 s mountain climbers / 30 s squats sautés / 30 s repos actif. × 2. C'est voulu que ce soit dur — tu entraînes ta capacité à tenir sous la fatigue.</div></div><div><div class=&quot;ex-badge&quot;>3 min</div><div class=&quot;ex-rest&quot;>Repos 1 min</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Round 3 — Shadow boxing défensif</div><div class=&quot;ex-muscle&quot;>Réflexes — esquiver et riposter</div><div class=&quot;ex-alt&quot;>Esquives + 1-2 coups</div><div class=&quot;ex-tip&quot;>Tu esquives (slip gauche/droite), tu te déplaces, tu riposes avec 1–2 coups. Imagine un adversaire qui attaque. Travaille ta respiration et ta garde.</div></div><div><div class=&quot;ex-badge&quot;>3 min</div><div class=&quot;ex-rest&quot;>Repos 1 min</div></div></div>
+      <div class=&quot;ex-card&quot; onclick=&quot;this.classList.toggle('open')&quot;><div><div class=&quot;ex-name&quot;>Round 4 — Finisher corde / sprints</div><div class=&quot;ex-muscle&quot;>Dernier effort — tout donner</div><div class=&quot;ex-alt&quot;>Intensité max</div><div class=&quot;ex-tip&quot;>20 s à fond (corde ou sprints sur place) / 10 s repos × 6. Si t'as encore de l'énergie t'as pas assez donné sur les rounds précédents.</div></div><div><div class=&quot;ex-badge&quot;>3 min</div></div></div>
+    </div>
+    <div class=&quot;rest-note&quot;>Durée estimée : 75–80 min · La séance la plus efficace pour la recompo — effet EPOC = ton corps continue de brûler 24–48h après</div>
+  </div>
+
+  <!-- NUTRITION -->
+  <div class=&quot;pane&quot; id=&quot;tab-nutri&quot;>
+    <div class=&quot;session-head&quot;><span class=&quot;session-tag tag-n&quot;>Quotidien</span></div>
+    <div class=&quot;session-title&quot;>Nutrition</div>
+    <div class=&quot;session-sub&quot;>~2050 kcal / 148 g prot les jours normaux. +200 kcal les jours de séance (mardi + jeudi).</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Plan journalier</div>
+    <div class=&quot;meal-card&quot;>
+      <div class=&quot;meal-head&quot;><div><div class=&quot;meal-name&quot;>Matin — Galettes avoine</div><div class=&quot;meal-time-label&quot;>7h – 8h</div></div><div class=&quot;meal-pills&quot;><span class=&quot;pill pill-k&quot;>~430 kcal</span><span class=&quot;pill pill-p&quot;>~28 g prot</span></div></div>
+      <div class=&quot;food-list&quot;>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Flocons d'avoine</span><span class=&quot;food-qty&quot;>60 g</span></div>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Œufs entiers</span><span class=&quot;food-qty&quot;>3 œufs</span></div>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Lait demi-écrémé</span><span class=&quot;food-qty&quot;>100 ml</span></div>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Kiwi + framboises (surgelés)</span><span class=&quot;food-qty&quot;>1 kiwi + 80 g</span></div>
+        <div class=&quot;food-note&quot;>Décongèle les fruits la veille au frigo.</div>
+      </div>
+    </div>
+    <div class=&quot;meal-card&quot;>
+      <div class=&quot;meal-head&quot;><div><div class=&quot;meal-name&quot;>Midi — Protéines</div><div class=&quot;meal-time-label&quot;>12h – 13h</div></div><div class=&quot;meal-pills&quot;><span class=&quot;pill pill-k&quot;>~280–350 kcal</span><span class=&quot;pill pill-p&quot;>~25–30 g prot</span></div></div>
+      <div class=&quot;food-list&quot;>
+        <div class=&quot;alt-block&quot;>
+          <div class=&quot;alt-label&quot;>Alterne entre ces options</div>
+          <div class=&quot;alt-row&quot;><div class=&quot;alt-dot&quot;></div><span class=&quot;alt-name&quot;>Thon au naturel (130 g)</span><span class=&quot;alt-prot&quot;>~30 g</span><span class=&quot;alt-kcal&quot;>~140 kcal</span></div>
+          <div class=&quot;alt-row&quot;><div class=&quot;alt-dot&quot;></div><span class=&quot;alt-name&quot;>Sardines / maquereau</span><span class=&quot;alt-prot&quot;>~20 g</span><span class=&quot;alt-kcal&quot;>~200 kcal + oméga-3</span></div>
+          <div class=&quot;alt-row&quot;><div class=&quot;alt-dot&quot;></div><span class=&quot;alt-name&quot;>Shaker whey (30 g)</span><span class=&quot;alt-prot&quot;>~24 g</span><span class=&quot;alt-kcal&quot;>~130 kcal</span></div>
+          <div class=&quot;alt-row&quot;><div class=&quot;alt-dot&quot;></div><span class=&quot;alt-name&quot;>Boisson protéinée (Hipro…)</span><span class=&quot;alt-prot&quot;>~20 g</span><span class=&quot;alt-kcal&quot;>~160 kcal</span></div>
+        </div>
+        <div class=&quot;food-row&quot; style=&quot;margin-top:8px;&quot;><span class=&quot;food-name-n&quot;>Fruits surgelés</span><span class=&quot;food-qty&quot;>1 portion</span></div>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Amandes</span><span class=&quot;food-qty&quot;>30 g</span></div>
+      </div>
+    </div>
+    <div class=&quot;meal-card&quot;>
+      <div class=&quot;meal-head&quot;><div><div class=&quot;meal-name&quot;>17h — Goûter</div><div class=&quot;meal-time-label&quot;>17h</div></div><div class=&quot;meal-pills&quot;><span class=&quot;pill pill-k&quot;>~120 kcal</span><span class=&quot;pill pill-p&quot;>~14 g prot</span></div></div>
+      <div class=&quot;food-list&quot;>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Concombre + tomates cerises</span><span class=&quot;food-qty&quot;>à volonté</span></div>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Fromage blanc 0%</span><span class=&quot;food-qty&quot;>150 g</span></div>
+      </div>
+    </div>
+    <div class=&quot;meal-card&quot;>
+      <div class=&quot;meal-head&quot;><div><div class=&quot;meal-name&quot;>Soir — Repas principal</div><div class=&quot;meal-time-label&quot;>19h30 – 20h30</div></div><div class=&quot;meal-pills&quot;><span class=&quot;pill pill-k&quot;>~850 kcal</span><span class=&quot;pill pill-p&quot;>~60 g prot</span></div></div>
+      <div class=&quot;food-list&quot;>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Viande / poisson / œufs</span><span class=&quot;food-qty&quot;>200 g cru</span></div>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Riz / pâtes / patate douce</span><span class=&quot;food-qty&quot;>90 g cru</span></div>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Œuf entier</span><span class=&quot;food-qty&quot;>1 œuf</span></div>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Légumes (courgette, brocoli…)</span><span class=&quot;food-qty&quot;>à volonté</span></div>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Huile d'olive</span><span class=&quot;food-qty&quot;>1 cs (10 g)</span></div>
+        <div class=&quot;food-note&quot;>Jours de séance (mar + jeu) : +20 g de riz et +30 g de viande.</div>
+      </div>
+    </div>
+    <div class=&quot;meal-card&quot;>
+      <div class=&quot;meal-head&quot;><div><div class=&quot;meal-name&quot;>Soir tardif — Si faim</div><div class=&quot;meal-time-label&quot;>22h+</div></div><div class=&quot;meal-pills&quot;><span class=&quot;pill pill-k&quot;>~200 kcal</span><span class=&quot;pill pill-p&quot;>~18 g prot</span></div></div>
+      <div class=&quot;food-list&quot;>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Fromage blanc 0%</span><span class=&quot;food-qty&quot;>150 g</span></div>
+        <div class=&quot;food-row&quot;><span class=&quot;food-name-n&quot;>Amandes</span><span class=&quot;food-qty&quot;>20 g</span></div>
+        <div class=&quot;food-note&quot;>Protéines lentes + lipides = récupération musculaire nocturne.</div>
+      </div>
+    </div>
+    <div class=&quot;slabel&quot;>Total journalier</div>
+    <div class=&quot;macro-block&quot;>
+      <div class=&quot;macro-block-title&quot;>Jours normaux (lun / mer / ven / dim)</div>
+      <div class=&quot;macro-grid&quot;>
+        <div class=&quot;macro-card v-blue&quot;><div class=&quot;macro-val&quot;>2050</div><div class=&quot;macro-label&quot;>kcal</div></div>
+        <div class=&quot;macro-card v-green&quot;><div class=&quot;macro-val&quot;>148g</div><div class=&quot;macro-label&quot;>protéines</div></div>
+        <div class=&quot;macro-card v-amber&quot;><div class=&quot;macro-val&quot;>195g</div><div class=&quot;macro-label&quot;>glucides</div></div>
+        <div class=&quot;macro-card v-red&quot;><div class=&quot;macro-val&quot;>63g</div><div class=&quot;macro-label&quot;>lipides</div></div>
+      </div>
+    </div>
+    <div class=&quot;macro-block&quot; style=&quot;margin-top:8px;&quot;>
+      <div class=&quot;macro-block-title&quot;>Jours de séance (mar + jeu)</div>
+      <div class=&quot;macro-grid&quot;>
+        <div class=&quot;macro-card v-blue&quot;><div class=&quot;macro-val&quot;>2250</div><div class=&quot;macro-label&quot;>kcal</div></div>
+        <div class=&quot;macro-card v-green&quot;><div class=&quot;macro-val&quot;>158g</div><div class=&quot;macro-label&quot;>protéines</div></div>
+        <div class=&quot;macro-card v-amber&quot;><div class=&quot;macro-val&quot;>225g</div><div class=&quot;macro-label&quot;>glucides</div></div>
+        <div class=&quot;macro-card v-red&quot;><div class=&quot;macro-val&quot;>63g</div><div class=&quot;macro-label&quot;>lipides</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONSEILS -->
+  <div class=&quot;pane&quot; id=&quot;tab-conseils&quot;>
+    <div class=&quot;session-title&quot; style=&quot;margin-bottom:6px;&quot;>Conseils</div>
+    <div class=&quot;session-sub&quot;>Les points clés pour que le programme soit vraiment efficace.</div>
+    <div class=&quot;slabel&quot; style=&quot;margin-top:0;&quot;>Progression</div>
+    <div class=&quot;tip-card&quot;>
+      <div class=&quot;tip-row&quot;><div class=&quot;tip-icon&quot;>📈</div><div><div class=&quot;tip-label&quot;>Augmente les reps d'abord</div><div class=&quot;tip-text&quot;>Si ton haltère est léger, vise des reps hautes (15–20+). Quand c'est trop facile → charge plus ou ralentis la descente (3–4 s).</div></div></div>
+      <div class=&quot;tip-row&quot;><div class=&quot;tip-icon&quot;>📝</div><div><div class=&quot;tip-label&quot;>Note tes perfs</div><div class=&quot;tip-text&quot;>Max de pompes, max de dips, poids utilisés. C'est le seul moyen de savoir si tu progresses vraiment semaine après semaine.</div></div></div>
+      <div class=&quot;tip-row&quot;><div class=&quot;tip-icon&quot;>🎒</div><div><div class=&quot;tip-label&quot;>Lester les pompes</div><div class=&quot;tip-text&quot;>Quand les pompes larges dépassent 20 reps facilement, mets un sac à dos avec des bouteilles d'eau.</div></div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Upgrade matériel</div>
+    <div class=&quot;tip-card&quot;>
+      <div class=&quot;tip-row&quot;><div class=&quot;tip-icon&quot;>🏋️</div><div><div class=&quot;tip-label&quot;>Barre de traction (priorité)</div><div class=&quot;tip-text&quot;>~20–30€ sur Amazon. Elle transforme complètement la séance B — remplace les rowings par des tractions.</div></div></div>
+      <div class=&quot;tip-row&quot;><div class=&quot;tip-icon&quot;>💰</div><div><div class=&quot;tip-label&quot;>Poids supplémentaires</div><div class=&quot;tip-text&quot;>Si tes haltères sont trop légers pour les jambes, achète des disques d'occasion sur LeBonCoin. ~2–3€/kg.</div></div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Routine vaccum</div>
+    <div class=&quot;tip-card&quot;>
+      <div class=&quot;tip-row&quot;><div class=&quot;tip-icon&quot;>🌬️</div><div><div class=&quot;tip-label&quot;>Vaccum abdominal</div><div class=&quot;tip-text&quot;>Quand tu as le temps — matin ou autre moment. Expire tout l'air à fond (poumons vides), puis sans reprendre d'air rentre le ventre le plus possible vers la colonne. Tiens 10–20 s, relâche, répète. 3 × 10 s pour commencer, progresse vers 3 × 20–30 s. Cible le transverse — le muscle qui donne un ventre plat naturellement. Les crunchs ne le touchent pas.</div></div></div>
+    </div>
+    <div class=&quot;slabel&quot;>Corps &amp; nutrition</div>
+    <div class=&quot;tip-card&quot;>
+      <div class=&quot;tip-row&quot;><div class=&quot;tip-icon&quot;>⚖️</div><div><div class=&quot;tip-label&quot;>Pèse-toi 1x/semaine</div><div class=&quot;tip-text&quot;>Le matin à jeun. Objectif : -0,3 à -0,5 kg/sem. Si tu perds plus → remonte les calories de 100–150 kcal.</div></div></div>
+      <div class=&quot;tip-row&quot;><div class=&quot;tip-icon&quot;>📷</div><div><div class=&quot;tip-label&quot;>Miroir > balance</div><div class=&quot;tip-text&quot;>Recompo = perdre du gras + gagner du muscle. Le poids peut stagner même si tu te transformes. Photo tous les mois.</div></div></div>
+      <div class=&quot;tip-row&quot;><div class=&quot;tip-icon&quot;>🚀</div><div><div class=&quot;tip-label&quot;>Transition vers la salle</div><div class=&quot;tip-text&quot;>Quand tu fais 15+ pompes et 12+ dips facilement, et que tes haltères ne suffisent plus pour les jambes — t'es prêt pour la salle.</div></div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Week counter
+(function() {
+  const start = new Date('2026-03-02');
+  const now = new Date();
+  const diffMs = now - start;
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const week = Math.floor(diffDays / 7) + 1;
+  const dayInWeek = diffDays % 7;
+  const el = document.getElementById('wc-num');
+  const label = document.getElementById('wc-label');
+  const sub = document.getElementById('wc-sub');
+  if (el) el.textContent = week;
+  if (label) label.textContent = week === 1 ? 'Première semaine 💪' : 'Semaine en cours';
+  if (sub) sub.textContent = 'Jour ' + (diffDays + 1) + ' · Commencé le 2 mars 2026';
+})();
+
+function showTab(id, btn) {
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+const days = [&quot;dim&quot;,&quot;lun&quot;,&quot;mar&quot;,&quot;mer&quot;,&quot;jeu&quot;,&quot;ven&quot;,&quot;sam&quot;];
+const today = new Date().getDay();
+const tab = days[today];
+const tabEl = document.getElementById('tab-' + tab);
+if (tabEl) {
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    if (btn.getAttribute('onclick')?.includes(&quot;'&quot; + tab + &quot;'&quot;)) {
+      document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      tabEl.classList.add('active');
+      btn.classList.add('active');
+    }
+  });
+}
+</script>
+</body>
+</html>
+"></iframe>
+  </div>
+</div>
+
+<script>
+const PIN = '40428';
+let current = '';
+
+function addPin(n) {
+  if (current.length >= 5) return;
+  current += n;
+  updateDots();
+  if (current.length === 5) setTimeout(checkPin, 150);
+}
+function delPin() {
+  current = current.slice(0, -1);
+  updateDots();
+}
+function updateDots() {
+  for (let i = 0; i < 5; i++) {
+    const d = document.getElementById('d' + i);
+    d.classList.toggle('filled', i < current.length);
+    d.classList.remove('error');
+  }
+}
+function checkPin() {
+  if (current === PIN) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+  } else {
+    for (let i = 0; i < 5; i++) document.getElementById('d' + i).classList.add('error');
+    setTimeout(() => { current = ''; updateDots(); }, 600);
+  }
+}
+function switchTab(tab) {
+  document.querySelectorAll('.app-frame').forEach(f => f.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('frame-' + tab).classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+function lock() {
+  current = ''; updateDots();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+document.addEventListener('keydown', e => {
+  if (e.key >= '0' && e.key <= '9') addPin(e.key);
+  if (e.key === 'Backspace') delPin();
+});
+</script>
+</body>
+</html>
